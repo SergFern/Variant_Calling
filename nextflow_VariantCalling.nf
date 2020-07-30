@@ -1,5 +1,22 @@
 #!/usr/bin/env nextflow
 
+log.info """\
+
+================================================================
+V A R I A N T  C A L L E R  - I R Y C I S    v 0.6
+================================================================
+genome               : $params.genome
+region               : $params.region_intervals
+read_directory       : ./$params.indir
+paired               : $params.paired
+reads                : $params.reads
+adapters             : $params.adapter_file
+variant_caller       : $params.vc
+remove_duplicates    : $params.remove_duplicates
+results              : ./$params.outdir
+================================================================
+"""
+
 Channel
   .fromFilePairs(params.maped_reads, checkifExists : true)
   .set{ch_recalculated_bam}

@@ -38,6 +38,7 @@ region               : $params.region_intervals
 read_directory       : ./$params.indir
 paired               : $params.paired
 reads                : $params.reads
+adapters             : $params.adapter_file
 aligner              : $params.aln
 remove_duplicates    : $params.remove_duplicates
 results              : ./$params.outdir
@@ -46,7 +47,26 @@ results              : ./$params.outdir
 
 //------------------------------------------------------------Trimming-------------------------------------------------
 
-if(!params.skipMain){ //-Uncomment to skip main section
+//if(!params.skipMain){ //-Uncomment to skip main section
+
+if(params.genome != "GRCh37" || params.genome != "GRCh38"){
+
+  ch_reference = file(params.genome, checkIfExists: true)
+
+  process indexing_custom_genome {
+    tag "Indexes supplied reference file"
+
+    publishDir "$params.outdir/reference", mode: 'copy'
+
+    input:
+    file reference from ch_reference
+
+    output:
+    file '*.idx'
+
+  }
+
+}
 
 
 process trimming {
@@ -84,7 +104,7 @@ process trimming {
       trimmomatic SE ${samples[0]} ${sampleId}_trimmed.fastq.gz ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
    }
-}
+//}
 }
 
 //------------------------------------------------------------Alignment----------------------------------------------------
