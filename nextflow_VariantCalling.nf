@@ -7,7 +7,7 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 0.6
 ================================================================
 genome               : $params.genome
 region               : $params.region_intervals
-read_directory       : ./$params.indir
+read_directory       : $params.indir
 paired               : $params.paired
 reads                : $params.reads
 adapters             : $params.adapter_file
@@ -21,41 +21,75 @@ Channel
   .fromFilePairs(params.maped_reads, checkifExists : true)
   .set{ch_recalculated_bam}
 
+//------------------
+if(params.genome != "GRCh37" && params.genome != "GRCh38"){
+
+custom_reference = file("${params.genome}") 
+prefixRef = custom_reference.name.take(custom_reference.name.lastIndexOf('.'))
+
+}
+// Defines regions for the variant calling to focus on.--------
 def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
 
 //---------------------------------------------Variant Calling----------------------------------------
+/*
+process LoadData {
+  tag "loads indexes and other data generated during GenomeMapping"
+
+  input:
+    file(file1) from ch_references
+  output:
+    file("${file1}")
+
+  script:
+  """
+  echo Loading sequence references:
+  """
+  println("${file1}")
+}
+*/
 
 process VariantCalling {
   tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
   publishDir "$params.outdir/variant_calling_files", mode: 'copy'
 
+  def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}.fasta": params.indexRef
+
   input:
+  // Imma need to generate a tsv with all bam files paths listed so I can feed all of them to freebayes and other variant callers together
     set sampleId, file(bam_file) from ch_recalculated_bam
+
   output:
     set sampleId, file("*vcf"), file("*.vcf.idx") optional true into ch_vcf
+    file('*.txt')
 
   def GVCF = params.GVCFmode == 'false' ? "":"-ERC GVCF"
-
-  print
+  //reference = file(params.seqRef)
 
 
   script:
+    /*
+    println("${bam_file[0]}")
+    println("${bam_file[1]}")
+    */
 
     if(params.vc == 'gatk'){
     """
-    gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} ${params.vcOpts} -I ${bam_file[1]} -O ${sampleId}.${params.vc}.vcf -R ${params.seqRef}
+    gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} ${params.vcOpts} -I ${bam_file[0]} -O ${sampleId}.${params.vc}.vcf -R ${reference} ${GVCF}
     """
     }else if(params.vc == 'freebayes'){
+
     """
-    freebayes -f ${params.seqRef} ${params.vcOpts} ${bam_file[0]} > ${sampleId}.${params.vc}.vcf
+    freebayes -f ${reference} ${bam_file[0]} ${params.vcOpts}> ${sampleId}.${params.vc}.vcf
     """
     }else if(params.vc == 'varscan'){
     """
-    samtools mpileup -B -f ${params.seqRef} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId}.${params.vc}.vcf ${GVCF}
+    samtools mpileup -B -f ${reference}.fasta ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId}.${params.vc}.vcf
+    
     """
     }
   }
-
+/*
 process SelectVariants {
   tag "Selects SNV or indels"
   publishDir "$params.outdir/variant_calling_files"
@@ -122,3 +156,4 @@ process IndexFeatureFile {
   gatk IndexFeatureFile --input ${vcf_file[0]}
   """
 }
+*/
