@@ -16,7 +16,7 @@ def helpMessage() {
     The typical command for running the pipeline is as follows:
     nextflow run [OPTIONS]
     Options:
-      --genome                         Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fa] (default: GRCh37)
+      --genome                         Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
       --adapter_file                   Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
       --region_intervals               Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
 
@@ -44,7 +44,7 @@ if (params.help){
 if(params.paired){
 
    Channel
-      .fromFilePairs(params.reads)
+      .fromFilePairs(params.reads, size: 2)
       .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
       .set{ ch_samples }
 
@@ -99,16 +99,17 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
   process Indexing_custom_genome {
     tag "Indexes supplied reference FASTA file (Samtools)"
 
-    publishDir "$params.indir/reference", mode: 'copy'
+    publishDir "$params.indir/custom_reference", mode: 'copy'
 
     input:
-    file reference from ch_reference
+    file reference_file from ch_reference
 
     output:
+    file("${reference_file[0]}")
     file '*.fai'
     
     """
-    samtools faidx ${reference[0]}
+    samtools faidx ${reference_file[0]}
     """
     
   }
@@ -116,10 +117,10 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
    process Building_genome_dictionary {
     tag "Creating Dictionary file (GATK)"
 
-    publishDir "$params.indir/reference", mode: 'copy'
+    publishDir "$params.indir/custom_reference", mode: 'copy'
 
     input:
-    file reference from ch_reference
+    file reference_file from ch_reference
 
     output:
     file '*.dict'
@@ -127,28 +128,23 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     script:
     
     """
-    gatk CreateSequenceDictionary -R ${reference[0]}
+    gatk CreateSequenceDictionary -R ${reference_file[0]}
     """
     
   }
 
   custom_reference = file("$params.genome")    
-  custom_reference.copyTo("$params.indir/reference")
+  custom_reference.copyTo("$params.indir/reference/")
 
   prefixRef = custom_reference.name.take(custom_reference.name.lastIndexOf('.'))
 
   process Custom_genome_indexing {
     tag "Indexes reference file using the specified aligner"
 
-    publishDir "$params.indir/reference", mode: 'copy'
-
-    errorStrategy {
-      println("\n::ERROR:: Unrecognised parameter: ${params.aln}\n")
-      helpMessage()
-    }
+    publishDir "$params.indir/custom_reference", mode: 'copy'
 
     input:
-    file reference from ch_reference
+    file reference_file from ch_reference
 
     output:
     file "*"
@@ -158,13 +154,13 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     if(params.aln == 'bwa'){
 
     """
-      bwa index ${reference[0]}
+      bwa index ${reference_file[0]}
     """
 
     }else if(params.aln == 'bowtie2'){
 
     """
-      bowtie2-build ${reference[0]} ${prefixRef}.bowtie2
+      bowtie2-build ${reference_file[0]} ${prefixRef}.bowtie2
     """
     }
   }
@@ -209,7 +205,7 @@ process FASTQ_Trimming {
   }
 
 //------------------------------------------------------------Alignment----------------------------------------------------
-def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}": params.indexRef
+def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}": params.indexRef
   
   process alignment {
 
@@ -353,7 +349,7 @@ process BAM_file_indexing{
 
 (ch_variant_calling) = ( params.dbSNP == 'NO_FILE'
                     ? [ ch_bamFilesForBaseRecalibration ]
-                    : [ Channel.empty() ] )   
+                    : [ Channel.empty() ] )
 
 if(params.dbSNP != 'NO_FILE'){
 
@@ -384,7 +380,7 @@ if(params.dbSNP != 'NO_FILE'){
       //set sampleId, file(varBQSR) from ch_BQSR
 
     output:
-      set sampleId, file('*.bam'), file('*.bai') into ch_variant_calling      
+      set sampleId, file('*.bam'), file('*.bai') into ch_variant_calling //ch_variant_calling2
 
     def rmdups = params.remove_duplicates == true ? ".rmdups":"" //We define a variable rmdups to mark files that which duplicates were removed.
     
@@ -398,13 +394,13 @@ if(params.dbSNP != 'NO_FILE'){
 
 process Variant_Calling {
   tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
-  //publishDir "$params.outdir/variant_calling_files", mode: 'copy'
+  //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
   //def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}.fasta": params.indexRef
 
   input:
   // Imma need to generate a tsv with all bam files paths listed so I can feed all of them to freebayes and other variant callers together
-    set sampleId, file(bam_file),file(bai_file) from ch_variant_calling
+    set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
 
   output:
     set sampleId, file('*vcf') into ch_vcf
@@ -439,7 +435,7 @@ process Variant_Calling {
 process VCF_indexing {
   tag "Indexes vcf files generated by Variant_Calling"
 
-  publishDir "$params.outdir/variant_calling_files", mode: 'copy'
+  publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
   input:
     set sampleId, file(vcf_file) from ch_vcf
