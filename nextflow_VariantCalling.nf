@@ -268,7 +268,7 @@ process BAM_sorting{
 
   tag "Sorts BAM file using Samtools"
 
-  publishDir "$params.outdir/alignment"
+  publishDir "$params.outdir/alignment", mode: 'copy'
 
   input:
   set sampleId, file(bam_file) from ch_bam_sorting
@@ -297,27 +297,27 @@ if(params.remove_duplicates){
 
 if(params.remove_duplicates){
 
-process Remove_duplicates{
-  tag "Remove duplicates if 'remove_duplicates' is true using MarkDuplicates"
+  process Remove_duplicates{
+    tag "Remove duplicates if 'remove_duplicates' is true using MarkDuplicates"
 
-  publishDir "$params.outdir/alignment"
+    publishDir "$params.outdir/alignment"
 
-   input:
-   set sampleId, file(bam_file) from ch_remove_duplicates
+     input:
+     set sampleId, file(bam_file) from ch_remove_duplicates
 
-   output:
-   set sampleId, file('*.bam') into ch_index_bam
+     output:
+     set sampleId, file('*.bam') into ch_index_bam
 
-   //when:
-   //params.remove_duplicates
+     //when:
+     //params.remove_duplicates
 
-   script:
+     script:
 
-   """
-   gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId}.metrix.dups -O ${sampleId}.${params.aln}.sort.rmdups.bam
-   """
+     """
+     gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId}.metrix.dups -O ${sampleId}.${params.aln}.sort.rmdups.bam
+     """
 
-    }
+      }
   }
 
 process BAM_file_indexing{
@@ -380,7 +380,7 @@ if(params.dbSNP != 'NO_FILE'){
       //set sampleId, file(varBQSR) from ch_BQSR
 
     output:
-      set sampleId, file('*.bam'), file('*.bai') into ch_variant_calling //ch_variant_calling2
+      set sampleId, file('*.bam'), file('*.bai') into ch_gather_bams //ch_variant_calling2
 
     def rmdups = params.remove_duplicates == true ? ".rmdups":"" //We define a variable rmdups to mark files that which duplicates were removed.
     
