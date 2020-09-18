@@ -17,19 +17,24 @@ def helpMessage() {
     nextflow run [OPTIONS]
     Options:
       --genome                         Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
-      --adapter_file                   Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
-      --region_intervals               Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --adapter_file [FILE]            Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
+      --region_intervals [BED FILE]    Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --dbSNP [FILE]                   Automatically proided when selecting GRCh37 or GRCh38, if using a custom reference and not provided base recalibration will not be performed.
 
       --paired                         Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
                                        If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
 
-      --reads                          Path to paired-end reads or single-end csv file  (default: "$baseDir/$params.indir/*R{1,2}*.fastq.gz (if paired) "$baseDir/$params.indir/*.csv" (if single-end))
+      --reads [DIR]                    Path to paired-end reads or single-end csv file  (default: "$baseDir/$params.indir/*R{1,2}*.fastq.gz (if paired) "$baseDir/$params.indir/*.csv" (if single-end))
                                        CSV format: SampleID, [path/to/read].fastq
       --aln                            Aligner chosen to map reads to the reference. Options: bwa, bowtie2 (default: bwa)
       --vc                             Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default:gatk)
+      --GVCFmode                       This flag indicates all samples provided come from the same experiment and thus should be called together. Right now only compatible with freebayes. (default: false)
+      --common_id [STRING]             Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first to characters of file name are used as experiment identifier)
+
+      --skip_variant_calling           Skips variant calling process entirely, only perform the alignment (default:false)
       --remove_duplicates              Remove marked as duplicated reads. Options: true, false (default: false)
-      --indir                          The input directory, all fastq files or csv files in this directory will be processed.
-      --outdir                         The output directory where the results will be saved (default: $params.outdir)
+      --indir [DIR]                    The input directory, all fastq files or csv files in this directory will be processed.
+      --outdir [DIR]                   The output directory where the results will be saved (default: $params.outdir)
       
 
     """.stripIndent()
@@ -205,7 +210,8 @@ process FASTQ_Trimming {
   }
 
 //------------------------------------------------------------Alignment----------------------------------------------------
-def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}": params.indexRef
+def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.fasta": params.indexRef
+def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.bowtie2": params.indexRef
   
   process alignment {
 
@@ -228,13 +234,13 @@ def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${para
         if(params.aln == 'bwa'){
 
         """
-        bwa mem ${params.mappingOptions} -o ${sampleId}.bwa.sam -R "${params.RG}" -t ${params.threads} ${reference}.fasta ${fastq_file[0]} ${fastq_file[1]} 
+        bwa mem ${params.mappingOptions} -o ${sampleId}.bwa.sam -R "${params.RG}" -t ${params.threads} ${reference} ${fastq_file[0]} ${fastq_file[1]} 
         """
 
         }else if(params.aln == 'bowtie2'){
 
         """
-        bowtie2 -p ${params.threads} -x ${reference}.bowtie2 -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId}.bowtie2.sam ${params.RG} ${params.mappingOptions}
+        bowtie2 -p ${params.threads} -x ${bowtie2ref} -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId}.bowtie2.sam ${params.RG} ${params.mappingOptions}
         """
         }else if(params.aln == 'novoalign'){
 
@@ -324,7 +330,7 @@ process BAM_file_indexing{
 
   tag "Indexing BAM file"
 
-  publishDir "$params.outdir/alignment"
+  publishDir "$params.outdir/alignment", mode: 'copy'
 
   input:
   set sampleId, file(bam_file) from ch_index_bam
@@ -341,13 +347,9 @@ process BAM_file_indexing{
 
   }
 
-
-//(ch_bamFilesForBaseRecalibration,
- //ch_bamFilesForApplyBQSR) = ch_indexed_bam.separate(2) { x -> [ x, x ] }
-
 //---------------------------------------------------Recalibration-----------------------------------------------
 
-(ch_variant_calling) = ( params.dbSNP == 'NO_FILE'
+(ch_gather_bams) = ( params.dbSNP == 'NO_FILE'
                     ? [ ch_bamFilesForBaseRecalibration ]
                     : [ Channel.empty() ] )
 
@@ -367,20 +369,20 @@ if(params.dbSNP != 'NO_FILE'){
     script:
 
     """
-    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${params.dbSNP} -output BQSR.table -reference ${reference}.fasta
+    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${params.dbSNP} -output BQSR.table -reference ${reference}
     """
     }
 
   process ApplyBQSR {
     tag "Apply previously recalibrated table"
-    publishDir "$params.outdir/alignment", mode: 'copy'
+    publishDir "$params.outdir/alignment/final", mode: 'copy'
 
     input:
       set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR.combine(ch_BQSR)
       //set sampleId, file(varBQSR) from ch_BQSR
 
     output:
-      set sampleId, file('*.bam'), file('*.bai') into ch_gather_bams //ch_variant_calling2
+      set sampleId, file('*.bam'), file('*.bai') //ch_variant_calling2
 
     def rmdups = params.remove_duplicates == true ? ".rmdups":"" //We define a variable rmdups to mark files that which duplicates were removed.
     
@@ -392,60 +394,130 @@ if(params.dbSNP != 'NO_FILE'){
     }  
 }
 
-process Variant_Calling {
-  tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
-  //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
-  //def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}.fasta": params.indexRef
+if(params.skip_variant_calling){}else{
 
-  input:
-  // Imma need to generate a tsv with all bam files paths listed so I can feed all of them to freebayes and other variant callers together
-    set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
+  if(!params.GVCFmode){
 
-  output:
-    set sampleId, file('*vcf') into ch_vcf
+    def samplePrefix = params.common_id != '*' ? "${params.common_id}":""
 
-  def GVCF = params.GVCFmode == 'false' ? "":"-ERC GVCF"
-  //reference = file(params.seqRef)
+    Channel
+      .fromFilePairs("${params.outdir}/alignment/${samplePrefix}*{sort.bam,sort.bam.bai}", size : 2, type: "any")
+      .set{ch_variant_calling}
+  
+    process Variant_Calling_single {
+      tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
+      //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+
+      //def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}.fasta": params.indexRef
+
+      input:
+      // Imma need to generate a tsv with all bam files paths listed so I can feed all of them to freebayes and other variant callers together
+        set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
+
+      output:
+        set sampleId, file('*vcf') into ch_vcf
+      //reference = file(params.seqRef)
 
 
-  script:
-    /*
-    println("${bam_file[0]}")
-    println("${bam_file[1]}")
-    */
+      script:
+        /*
+        println("${bam_file[0]}")
+        println("${bam_file[1]}")
+        */
 
-    if(params.vc == 'gatk'){
-    """
-    gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId}.${params.vc}.vcf -R ${reference}.fasta ${GVCF} ${params.vcOpts}
-    """
-    }else if(params.vc == 'freebayes'){
+        if(params.vc == 'gatk'){
 
-    """
-    freebayes ${ploidy}${params.vcOpts} -f ${reference}.fasta ${bam_file[0]} > ${sampleId}.${params.vc}.vcf
-    """
-    }else if(params.vc == 'varscan'){
-    """
-    samtools mpileup -B -f ${reference}.fasta ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId}.${params.vc}.vcf
-    
-    """
+        """
+        gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId}.${params.vc}.vcf -R ${reference} ${params.vcOpts}
+        """
+        }else if(params.vc == 'freebayes'){
+
+        """
+        freebayes ${ploidy} -f ${reference} ${bam_file[0]} > ${sampleId}.${params.vc}.vcf
+        """
+        }else if(params.vc == 'varscan'){
+        """
+        samtools mpileup -B -f ${reference} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId}.${params.vc}.vcf
+        
+        """
+        }
+      }
+
+    }else{
+
+      // Gather all alignment files from the same experiment to process together
+
+      def samplePrefix = params.common_id != '*' ? "${params.common_id}":""
+
+      if(params.common_id == '*'){
+          Channel
+            .fromFilePairs("${params.outdir}/alignment/${samplePrefix}*{sort.bam,sort.bam.bai}", size : 2, type: "any")
+            .map{it -> [it[0][0,1], it[1]]}
+            .groupTuple()
+            .set{ch_variant_calling}
+
+      }else{
+          Channel
+            .fromFilePairs("${params.outdir}/alignment/${samplePrefix}*{sort.bam,sort.bam.bai}", size : 2, type: "any")
+            .map{it -> [params.common_id, it[1]]}
+            .groupTuple()
+            .set{ch_variant_calling}
+
+      }
+
+      process Variant_Calling_batch {
+        tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
+        //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+
+        //def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}.fasta": params.indexRef
+
+        input:
+          set expId, val(data) from ch_variant_calling //.combine(ch_variant_calling2)
+
+        output:
+          set expId, file('*vcf') into ch_vcf
+        //reference = file(params.seqRef)
+
+        script:
+
+          String bams = data.flatten().collate(1,2).flatten().join(" ")
+
+          if(params.vc == 'gatk'){
+
+            println("gatk right now is incompatible with GVCFmode")
+
+          }else if(params.vc == 'freebayes'){
+
+            def GVCF = "--gvcf"
+          """
+          freebayes ${ploidy} ${GVCF} -f ${reference} ${bams} > ${expId}.${params.vc}.vcf
+          """
+          }else if(params.vc == 'varscan'){
+
+          println("varscan right now is incompatible with GVCFmode")
+
+          }
+        }
+
+
     }
+
+  process VCF_indexing {
+    tag "Indexes vcf files generated by Variant_Calling"
+
+    publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+
+    input:
+      set sampleId, file(vcf_file) from ch_vcf
+    output:
+      set sampleId, file("${vcf_file[0]}"), file('*.vcf.idx')
+
+    script:
+    """
+    gatk IndexFeatureFile --input ${vcf_file[0]}
+    """
   }
-
-process VCF_indexing {
-  tag "Indexes vcf files generated by Variant_Calling"
-
-  publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
-
-  input:
-    set sampleId, file(vcf_file) from ch_vcf
-  output:
-    set sampleId, file("${vcf_file[0]}"), file('*.vcf.idx')
-
-  script:
-  """
-  gatk IndexFeatureFile --input ${vcf_file[0]}
-  """
 }
  //skiping main conditional key
 

@@ -1,5 +1,31 @@
 #!/usr/bin/env nextflow
 
+def helpMessage() {
+    log.info"""
+    ==================================================================
+    ${workflow.manifest.name}  ~  version ${workflow.manifest.version}
+    ==================================================================
+
+    Git info: $workflow.repository - $workflow.revision [$workflow.commitId]
+
+    Usage:
+    The typical command for running the pipeline is as follows:
+    nextflow run [OPTIONS]
+    Options:
+      
+      --indir                          The input directory, all vcf files in this directory will be processed. (default: $params.outdir/raw_variant_calling)
+      --outdir                         The output directory where the results will be saved (default: $params.outdir)
+      
+
+    """.stripIndent()
+}
+
+// Show help message if --help specified
+if (params.help){
+  helpMessage()
+  exit 0
+}
+
 log.info """\
 
 ================================================================
