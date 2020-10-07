@@ -29,7 +29,7 @@ if (params.help){
 log.info """\
 
 ================================================================
-V A R I A N T  C A L L E R  - I R Y C I S    v 0.9-Custom Ref
+V A R I A N T  C A L L E R  - I R Y C I S    v 1.1-Fixing Sample Names
 ================================================================
 read_directory       : ./$params.VCF_files
 results              : ./$params.outdir/curated_variant_calling_files

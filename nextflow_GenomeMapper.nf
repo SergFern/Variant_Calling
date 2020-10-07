@@ -1,7 +1,6 @@
 #!/usr/bin/env nextflow
 
 //TODO:
-//meter mapping interval
 //Provide an error if adapter filtering was usuccessful
 
 def helpMessage() {
@@ -16,25 +15,26 @@ def helpMessage() {
     The typical command for running the pipeline is as follows:
     nextflow run [OPTIONS]
     Options:
-      --genome                         Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
-      --adapter_file [FILE]            Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
-      --region_intervals [BED FILE]    Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
-      --dbSNP [FILE]                   Automatically proided when selecting GRCh37 or GRCh38, if using a custom reference and not provided base recalibration will not be performed.
+      --genome                            Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
+      --adapter_file [FILE]               Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
+      --region_intervals [BED FILE]       Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --dbSNP [FILE]                      Automatically provided when selecting GRCh37 or GRCh38, if a custom reference is used and a custom_dbSNP is not provided base recalibration will not be performed.
 
-      --paired                         Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
-                                       If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
+      --paired                            Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
+                                          If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
 
-      --reads [DIR]                    Path to paired-end reads or single-end csv file  (default: "$baseDir/$params.indir/*R{1,2}*.fastq.gz (if paired) "$baseDir/$params.indir/*.csv" (if single-end))
-                                       CSV format: SampleID, [path/to/read].fastq
-      --aln                            Aligner chosen to map reads to the reference. Options: bwa, bowtie2 (default: bwa)
-      --vc                             Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default:gatk)
-      --GVCFmode                       This flag indicates all samples provided come from the same experiment and thus should be called together. Right now only compatible with freebayes. (default: false)
-      --common_id [STRING]             Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first to characters of file name are used as experiment identifier)
+      --reads [GLOB]                      Path to paired-end reads or single-end csv file  (default: "$baseDir/data/*R{1,2}*.fastq.gz (if paired) "$baseDir/data/*.csv" (if single-end))
+                                          CSV format: SampleID, [path/to/read].fastq
+      --aln <bwa|bowtie2>                 Aligner chosen to map reads to the reference. Options: bwa, bowtie2 (default: bwa)
+      --vc  <freebayes|gatk|varscan|none>                           Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default:gatk)
+                                          By default the variant caller will execute in single sample mode. For joint variant calling use jointVariantCalling.nf pipeline.
+      --common_id [STRING]                Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
 
-      --skip_variant_calling           Skips variant calling process entirely, only perform the alignment (default:false)
-      --remove_duplicates              Remove marked as duplicated reads. Options: true, false (default: false)
-      --indir [DIR]                    The input directory, all fastq files or csv files in this directory will be processed.
-      --outdir [DIR]                   The output directory where the results will be saved (default: $params.outdir)
+      --skip_variant_calling              Skips variant calling process entirely, only perform the alignment (default:false)
+      --remove_duplicates                 Remove marked as duplicated reads. Options: true, false (default: false)
+      --min_alt_fraction                  Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
+      --indir [DIR]                       The input directory, all fastq files or csv files in this directory will be processed. (default: "data")
+      --outdir [DIR]                      The output directory where the results will be saved (default: "my-results")
       
 
     """.stripIndent()
@@ -48,10 +48,18 @@ if (params.help){
 
 if(params.paired){
 
+  //Reads must be read twice, both as a trupple and as an array
    Channel
-      .fromFilePairs(params.reads, size: 2)
+      .fromFilePairs(params.reads, size: 2,  checkIfExists: true, flat:true)
       .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
-      .set{ ch_samples }
+      .into{ [ch_pre_samples, ch_FlowCell_lane] }
+
+
+   //Make ch_pre_samples a tuple to process SampleId in processes more easily and to include it in ReadGroup (RG) info.
+   ch_pre_samples.map{it -> new Tuple(it[0].split("_")[0],it[1,2])}.set{ ch_samples_with_id }
+
+   //Identify fastq data for Read group definition "ID". RG:ID = {flowcell}.{lane}.{uniqueId} [must be unique despite documentation stating otherwise]
+   ch_FlowCell_lane.splitFastq(record: true, pe: true, limit: 1).map{it -> new Tuple(it[0].split("_")[0], it[1].readHeader.split(":")[2,3,9].join("."))}.set{ch_RG_ID}
 
 }else{
 
@@ -61,9 +69,13 @@ if(params.paired){
       .map{ row-> [row.sampleId, [row.read]] }
       .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
       .ifEmpty {error "File ${params.reads} not parsed properly"}
-      .set{ ch_samples }
+      .into{ [ch_samples, ch_sampleName, ch_FlowCell_lane] }
+
+   ch_FlowCell_lane.splitFastq(record: true, pe: true, limit: 1).map{it -> new Tuple(it[0].split("_")[0], it[1].readHeader.split(":")[2,3,9].join("."))}.set{ch_RG_ID}
 
  }
+//Fuse Ids and samples to manage SampleId as a tuple together with the samples they identify.
+ch_RG_ID.concat(ch_samples_with_id).groupTuple().map{ it -> [[it[0],it[1][0]],it[1][1]] }.set{ ch_samples }
 
 
 ch_dbSNP = file(params.dbSNP)
@@ -75,13 +87,14 @@ def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.ge
 log.info """\
 
 ================================================================
-V A R I A N T  C A L L E R  - I R Y C I S    v 0.9-Custom Ref
+V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
 ================================================================
 genome               : $params.genome
 reads                : $params.reads
 adapters             : $params.adapter_file
 
-region               : $params.region_intervals
+region_intervals     : $params.region_intervals
+dbSNP                : ${params.dbSNP}
 
 paired               : $params.paired
 aligner              : $params.aln
@@ -89,9 +102,9 @@ variant_caller       : $params.vc
 remove_duplicates    : $params.remove_duplicates
 ploidy               : $params.ploidy
 
-read_directory       : ./$params.indir
-results              : ./$params.outdir
-================================================================
+read_directory       : $params.indir
+results              : $params.outdir
+===============================================================
 """
 
 //------------------------------------------------------------Trimming-------------------------------------------------
@@ -179,11 +192,10 @@ process FASTQ_Trimming {
   publishDir "$params.outdir/trimmed_data"
 
    input:
-   set sampleId, samples from ch_samples
+   set sampleId, file(samples) from ch_samples
    file adapter from ch_adapter
 
    output:
-   file '*.fastq.gz'
    set sampleId, file('*.fastq.gz') into ch_alignment
 
    script:
@@ -197,59 +209,88 @@ process FASTQ_Trimming {
       //template 'trimmomatic/trimmomatic_PE_adapter_test'
 
       """
-      trimmomatic PE ${samples[0]} ${samples[1]} ${sampleId}_R1.fastq.gz bad_1 ${sampleId}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic PE ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
     //  }
    }
    else{
 
       """
-      trimmomatic SE ${samples[0]} ${sampleId}_trimmed.fastq.gz ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic SE ${samples[0]} ${sampleId[0]}_trimmed.fastq.gz ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
    }
   }
 
 //------------------------------------------------------------Alignment----------------------------------------------------
-def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.fasta": params.indexRef
-def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.bowtie2": params.indexRef
+//-------------------------------------------------------------------------------------------------------------------------
+
+def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.fasta": file("${params.indexRef}")
+def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.bowtie2": "${params.indexRef}"
   
-  process alignment {
+process Alignment {
 
-    tag "Aligns reads to a reference genome using bwa or bowtie2"
-     
-     publishDir "$params.outdir/alignment"
+  tag "Aligns reads to a reference genome using bwa or bowtie2"
+   
+   publishDir "$params.outdir/alignment"
 
-     input:
-     set sampleId, file(fastq_file) from ch_alignment
-     //file indexRef from alignment_index_ch
+   input:
+   set sampleId, file(fastq_file) from ch_alignment
 
-     output:
-     file '*.sam'
-     set sampleId, file('*.sam') into ch_sam_to_bam
+   output:
+   set sampleId, file('*.sam') into ch_sam_to_bam
 
-     script:
+   script:
 
-     if(params.paired){
+   if(params.paired){
 
-        if(params.aln == 'bwa'){
+      if(params.aln == 'bwa'){
 
-        """
-        bwa mem ${params.mappingOptions} -o ${sampleId}.bwa.sam -R "${params.RG}" -t ${params.threads} ${reference} ${fastq_file[0]} ${fastq_file[1]} 
-        """
+      RG = "@RG\\tID:${sampleId[1]}\\tSM:${sampleId[0]}\\tPL:${params.platform}"
 
-        }else if(params.aln == 'bowtie2'){
+      """
+      bwa mem ${params.mappingOptions}-o ${sampleId[0]}.bwa.sam -R "${RG}" -t ${params.threads} ${reference} ${fastq_file[0]} ${fastq_file[1]} 
+      """
 
-        """
-        bowtie2 -p ${params.threads} -x ${bowtie2ref} -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId}.bowtie2.sam ${params.RG} ${params.mappingOptions}
-        """
-        }else if(params.aln == 'novoalign'){
+      }else if(params.aln == 'bowtie2'){
 
-        """
-        novoalign --version
-        """
-        }
+      RG = " --rg-id ${sampleId[1]} --rg SM:${sampleId[0]} --rg PL:${params.platform}"
+
+      """
+      bowtie2 -p ${params.threads} -x ${bowtie2ref} -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId[0]}.bowtie2.sam ${RG} ${params.mappingOptions}
+      """
+      }else if(params.aln == 'novoalign'){
+
+      """
+      novoalign --version
+      """
       }
-  }
+    }else{
+
+      if(params.aln == 'bwa'){
+
+      RG = "@RG\\tID:${sampleId[1]}\\tSM:${sampleId[0]}\\tPL:${params.platform}"
+
+      """
+      bwa mem ${params.mappingOptions} -o ${sampleId[0]}.bwa.sam -R "${RG}" -t ${params.threads} ${reference} ${fastq_file[0]}
+      """
+
+      }else if(params.aln == 'bowtie2'){
+
+      RG = " --rg-id ${sampleId[1]} --rg SM:${sampleId[0]} --rg PL:${params.platform}"
+
+      """
+      bowtie2 -p ${params.threads} -x ${bowtie2ref} -1 ${fastq_file[0]} -S ${sampleId[0]}.bowtie2.sam ${RG} ${params.mappingOptions}
+      """
+      }else if(params.aln == 'novoalign'){
+
+      """
+      novoalign --version
+      """
+      }
+
+
+    }
+}
 
 process SAM_to_BAM{
 
@@ -266,7 +307,7 @@ process SAM_to_BAM{
   script:
 
   """
-    samtools view --threads ${params.threads} -b -o ${sampleId}.${params.aln}.bam ${sam_file[0]}
+    samtools view --threads ${params.threads} -b -o ${sampleId[0]}.${params.aln}.bam ${sam_file[0]}
   """
   }
 
@@ -286,12 +327,12 @@ process BAM_sorting{
   script:
 
   """
-  samtools sort --threads ${params.threads} -o ${sampleId}.${params.aln}.sort.bam ${bam_file[0]}
+  samtools sort --threads ${params.threads} -o ${sampleId[0]}.${params.aln}.sort.bam ${bam_file[0]}
   """
   }
 
 //---------------------------------------------------Mark Duplicates or not-----------------------------------------------
-
+//------------------------------------------------------------------------------------------------------------------------
 
 if(params.remove_duplicates){
   ch_remove_duplicates = Channel.create()
@@ -320,7 +361,7 @@ if(params.remove_duplicates){
      script:
 
      """
-     gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId}.metrix.dups -O ${sampleId}.${params.aln}.sort.rmdups.bam
+     gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId[0]}.metrix.dups -O ${sampleId[0]}.${params.aln}.sort.rmdups.bam
      """
 
       }
@@ -348,10 +389,13 @@ process BAM_file_indexing{
   }
 
 //---------------------------------------------------Recalibration-----------------------------------------------
-
+//---------------------------------------------------------------------------------------------------------------
+/* Is this still relevant?
 (ch_gather_bams) = ( params.dbSNP == 'NO_FILE'
                     ? [ ch_bamFilesForBaseRecalibration ]
-                    : [ Channel.empty() ] )
+                    : [ Channel.empty() ] )*/
+
+
 
 if(params.dbSNP != 'NO_FILE'){
 
@@ -361,7 +405,7 @@ if(params.dbSNP != 'NO_FILE'){
     
 
     input:
-      set sampleId, file(bam_files), file(dbSNP) from ch_bamFilesForBaseRecalibration
+      set sampleId, file(bam_files), file(bai_file) from ch_bamFilesForBaseRecalibration
       //set sampleId, file(dbSNP) from ch_dbSNP
     output:
       file("*table") into ch_BQSR
@@ -369,7 +413,7 @@ if(params.dbSNP != 'NO_FILE'){
     script:
 
     """
-    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${params.dbSNP} -output BQSR.table -reference ${reference}
+    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${params.dbSNP} -output BQSR.table -reference ${params.seqRef}
     """
     }
 
@@ -382,126 +426,50 @@ if(params.dbSNP != 'NO_FILE'){
       //set sampleId, file(varBQSR) from ch_BQSR
 
     output:
-      set sampleId, file('*.bam'), file('*.bai') //ch_variant_calling2
+      set sampleId, file('*.bam'), file('*.bai') into ch_variant_calling
 
-    def rmdups = params.remove_duplicates == true ? ".rmdups":"" //We define a variable rmdups to mark files that which duplicates were removed.
+    def rmdups = params.remove_duplicates == true ? ".rmdups":""
     
-
     script:
       """
-      gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId}.${params.aln}.sort${rmdups}.bqsr.bam
+      gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}.sort${rmdups}.bqsr.bam
       """
+
     }  
-}
+}else{ch_bamFilesForBaseRecalibration.set{ch_variant_calling}}
 
 
 if(params.skip_variant_calling){}else{
 
-  if(!params.GVCFmode){
+  process Variant_Calling_single {
+    tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
+    //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
-    def samplePrefix = params.common_id != '*' ? "${params.common_id}":""
+    input:
+      set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
+    output:
+      set sampleId, file('*vcf') into ch_vcf
+    //reference = file(params.seqRef)
 
-    Channel
-      .fromFilePairs("${params.outdir}/alignment/${samplePrefix}*{sort.bam,sort.bam.bai}", size : 2, type: "any")
-      .set{ch_variant_calling}
-  
-    process Variant_Calling_single {
-      tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
-      //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+    script:
 
-      //def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}.fasta": params.indexRef
+      if(params.vc == 'gatk'){
 
-      input:
-      // Imma need to generate a tsv with all bam files paths listed so I can feed all of them to freebayes and other variant callers together
-        set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
+      """
+      gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId[0]}.${params.vc}.vcf -R ${reference} ${params.vcOpts}
+      """
+      }else if(params.vc == 'freebayes'){
 
-      output:
-        set sampleId, file('*vcf') into ch_vcf
-      //reference = file(params.seqRef)
-
-
-      script:
-        /*
-        println("${bam_file[0]}")
-        println("${bam_file[1]}")
-        */
-
-        if(params.vc == 'gatk'){
-
-        """
-        gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId}.${params.vc}.vcf -R ${reference} ${params.vcOpts}
-        """
-        }else if(params.vc == 'freebayes'){
-
-        """
-        freebayes ${ploidy} -f ${reference} ${bam_file[0]} > ${sampleId}.${params.vc}.vcf
-        """
-        }else if(params.vc == 'varscan'){
-        """
-        samtools mpileup -B -f ${reference} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId}.${params.vc}.vcf
-        
-        """
-        }
+      """
+      freebayes --min-alternate-fraction ${params.min_alt_fraction} -f ${reference} ${bam_file[0]} > ${sampleId[0]}.${params.vc}.vcf
+      """
+      }else if(params.vc == 'varscan'){
+      """
+      samtools mpileup -B -f ${reference} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
+      
+      """
       }
-
-    }else{
-
-      // Gather all alignment files from the same experiment to process together
-
-      def samplePrefix = params.common_id != '*' ? "${params.common_id}":""
-
-      if(params.common_id == '*'){
-          Channel
-            .fromFilePairs("${params.outdir}/alignment/${samplePrefix}*{sort.bam,sort.bam.bai}", size : 2, type: "any")
-            .map{it -> [it[0][0,1], it[1]]}
-            .groupTuple()
-            .set{ch_variant_calling}
-
-      }else{
-          Channel
-            .fromFilePairs("${params.outdir}/alignment/${samplePrefix}*{sort.bam,sort.bam.bai}", size : 2, type: "any")
-            .map{it -> [params.common_id, it[1]]}
-            .groupTuple()
-            .set{ch_variant_calling}
-
-      }
-
-      process Variant_Calling_batch {
-        tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
-        //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
-
-        //def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/reference/${prefixRef}.fasta": params.indexRef
-
-        input:
-          set expId, val(data) from ch_variant_calling //.combine(ch_variant_calling2)
-
-        output:
-          set expId, file('*vcf') into ch_vcf
-        //reference = file(params.seqRef)
-
-        script:
-
-          String bams = data.flatten().collate(1,2).flatten().join(" ")
-
-          if(params.vc == 'gatk'){
-
-            println("gatk right now is incompatible with GVCFmode")
-
-          }else if(params.vc == 'freebayes'){
-
-            def GVCF = "--gvcf"
-          """
-          freebayes ${ploidy} ${GVCF} -f ${reference} ${bams} > ${expId}.${params.vc}.vcf
-          """
-          }else if(params.vc == 'varscan'){
-
-          println("varscan right now is incompatible with GVCFmode")
-
-          }
-        }
-
-
-    }
+    }  
 
   process VCF_indexing {
     tag "Indexes vcf files generated by Variant_Calling"
