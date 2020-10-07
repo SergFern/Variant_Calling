@@ -1,5 +1,10 @@
-# Ignore everything in this directory
 .nextflow*
 GermlineSingularity/*
 my-results
 work
+flowchart*
+timeline*
+nexflow_trials.nf
+*fasta
+nextflow_trials*
+cleanup.sh
