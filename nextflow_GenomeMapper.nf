@@ -215,14 +215,14 @@ process FASTQ_Trimming {
       //template 'trimmomatic/trimmomatic_PE_adapter_test'
 
       """
-      trimmomatic PE ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
     //  }
    }
    else{
 
       """
-      trimmomatic SE ${samples[0]} ${sampleId[0]}_trimmed.fastq.gz ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic SE -threads ${params.threads} ${samples[0]} ${sampleId[0]}_trimmed.fastq.gz ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
    }
   }
