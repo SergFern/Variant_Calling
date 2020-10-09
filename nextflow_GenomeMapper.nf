@@ -420,7 +420,7 @@ if(params.dbSNP != 'NO_FILE'){
       set sampleId, file(bam_files), file(bai_file) from ch_bamFilesForBaseRecalibration
       //set sampleId, file(dbSNP) from ch_dbSNP
     output:
-      set sampleId,  file("${bam_file[0]}"), file('*.bai'), file("*table") into ch_bamFilesForApplyBQSR
+      set sampleId,  file("${bam_files[0]}"), file("${bai_file[0]}"), file("*table") into ch_bamFilesForApplyBQSR
 
     script:
 
@@ -433,7 +433,6 @@ if(params.dbSNP != 'NO_FILE'){
     tag "Apply previously recalibrated table"
     label 'med_mem'
     publishDir "$params.outdir/alignment/final", mode: 'copy'
-    echo true
 
     input:
       set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
@@ -447,8 +446,7 @@ if(params.dbSNP != 'NO_FILE'){
     script:
       """
       gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}.sort${rmdups}.bqsr.bam
-      echo ${bam[0]}
-      echo ${bqsr[0]}
+
       """
 
     }  
