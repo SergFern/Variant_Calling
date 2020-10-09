@@ -15,7 +15,7 @@ def helpMessage() {
     The typical command for running the pipeline is as follows:
     nextflow run [OPTIONS]
     Options:
-      --genome                            Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
+      --genome <GRCh37|GRCh38|[FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
       --adapter_file [FILE]               Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
       --region_intervals [BED FILE]       Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
       --dbSNP [FILE]                      Automatically provided when selecting GRCh37 or GRCh38, if a custom reference is used and a custom_dbSNP is not provided base recalibration will not be performed.
@@ -26,7 +26,7 @@ def helpMessage() {
       --reads [GLOB]                      Path to paired-end reads or single-end csv file  (default: "$baseDir/data/*R{1,2}*.fastq.gz (if paired) "$baseDir/data/*.csv" (if single-end))
                                           CSV format: SampleID, [path/to/read].fastq
       --aln <bwa|bowtie2>                 Aligner chosen to map reads to the reference. Options: bwa, bowtie2 (default: bwa)
-      --vc  <freebayes|gatk|varscan|none>                           Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default:gatk)
+      --vc  <freebayes|gatk|varscan> Variant caller to use for variant calling. Overrideed by --skip_variant_calling Options: gatk, freebayes, varscan (default:gatk)
                                           By default the variant caller will execute in single sample mode. For joint variant calling use jointVariantCalling.nf pipeline.
       --common_id [STRING]                Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
 
