@@ -5,11 +5,11 @@
 
 def helpMessage() {
     log.info"""
-    ==================================================================
-    ${workflow.manifest.name}  ~  version ${workflow.manifest.version}
-    ==================================================================
 
-    Git info: $workflow.repository - $workflow.revision [$workflow.commitId]
+	================================================================
+	V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
+	================================================================
+
 
     Usage:
     The typical command for running the pipeline is as follows:
@@ -111,13 +111,16 @@ results              : $params.outdir
 
 if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
+
   ch_reference = file(params.genome, checkIfExists: true)
   //(ch_reference_idx, ch_reference_dic) = Channel.from(ch_reference).into(2) apparently there is no need for this?
 
   process Indexing_custom_genome {
     tag "Indexes supplied reference FASTA file (Samtools)"
+    label 'med_mem'
 
     publishDir "$params.indir/custom_reference", mode: 'copy'
+
 
     input:
     file reference_file from ch_reference
@@ -134,6 +137,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
    process Building_genome_dictionary {
     tag "Creating Dictionary file (GATK)"
+    label 'med_mem'
 
     publishDir "$params.indir/custom_reference", mode: 'copy'
 
@@ -158,6 +162,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
   process Custom_genome_indexing {
     tag "Indexes reference file using the specified aligner"
+    label 'med_mem'
 
     publishDir "$params.indir/custom_reference", mode: 'copy'
 
@@ -188,6 +193,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 process FASTQ_Trimming {
 
   tag "Quality checks and trimms reads using a trimmomatic"
+  label 'med_mem'
 
   publishDir "$params.outdir/trimmed_data"
 
@@ -209,14 +215,14 @@ process FASTQ_Trimming {
       //template 'trimmomatic/trimmomatic_PE_adapter_test'
 
       """
-      trimmomatic PE ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
     //  }
    }
    else{
 
       """
-      trimmomatic SE ${samples[0]} ${sampleId[0]}_trimmed.fastq.gz ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic SE -threads ${params.threads} ${samples[0]} ${sampleId[0]}_trimmed.fastq.gz ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
    }
   }
@@ -230,8 +236,9 @@ def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${par
 process Alignment {
 
   tag "Aligns reads to a reference genome using bwa or bowtie2"
+  label 'med_mem'
    
-   publishDir "$params.outdir/alignment"
+  publishDir "$params.outdir/alignment"
 
    input:
    set sampleId, file(fastq_file) from ch_alignment
@@ -295,6 +302,7 @@ process Alignment {
 process SAM_to_BAM{
 
   tag "Converts SAM file to BAM file using samtools view"
+  label 'med_mem'
 
   publishDir "$params.outdir/alignment"
 
@@ -314,6 +322,7 @@ process SAM_to_BAM{
 process BAM_sorting{
 
   tag "Sorts BAM file using Samtools"
+  label 'med_mem'
 
   publishDir "$params.outdir/alignment", mode: 'copy'
 
@@ -346,6 +355,7 @@ if(params.remove_duplicates){
 
   process Remove_duplicates{
     tag "Remove duplicates if 'remove_duplicates' is true using MarkDuplicates"
+    label 'med_mem'
 
     publishDir "$params.outdir/alignment"
 
@@ -370,6 +380,7 @@ if(params.remove_duplicates){
 process BAM_file_indexing{
 
   tag "Indexing BAM file"
+  label 'med_mem'
 
   publishDir "$params.outdir/alignment", mode: 'copy'
 
@@ -378,7 +389,6 @@ process BAM_file_indexing{
 
   output:
   set sampleId,  file("${bam_file[0]}"), file('*.bai') into ch_bamFilesForBaseRecalibration
-  set sampleId,  file("${bam_file[0]}"), file('*.bai') into ch_bamFilesForApplyBQSR
 
   script:
 
@@ -401,6 +411,8 @@ if(params.dbSNP != 'NO_FILE'){
 
   process BaseRecalibrator {
     tag "Calculate Base recalibration table"
+    label 'med_mem'
+
     publishDir "$params.outdir/alignment"
     
 
@@ -408,21 +420,22 @@ if(params.dbSNP != 'NO_FILE'){
       set sampleId, file(bam_files), file(bai_file) from ch_bamFilesForBaseRecalibration
       //set sampleId, file(dbSNP) from ch_dbSNP
     output:
-      file("*table") into ch_BQSR
+      set sampleId,  file("${bam_files[0]}"), file("${bai_file[0]}"), file("*table") into ch_bamFilesForApplyBQSR
 
     script:
 
     """
-    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${params.dbSNP} -output BQSR.table -reference ${params.seqRef}
+    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${params.dbSNP} -output ${sampleId[0]}.BQSR.table -reference ${params.seqRef}
     """
     }
 
   process ApplyBQSR {
     tag "Apply previously recalibrated table"
+    label 'med_mem'
     publishDir "$params.outdir/alignment/final", mode: 'copy'
 
     input:
-      set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR.combine(ch_BQSR)
+      set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
       //set sampleId, file(varBQSR) from ch_BQSR
 
     output:
@@ -433,6 +446,7 @@ if(params.dbSNP != 'NO_FILE'){
     script:
       """
       gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}.sort${rmdups}.bqsr.bam
+
       """
 
     }  
@@ -443,6 +457,7 @@ if(params.skip_variant_calling){}else{
 
   process Variant_Calling_single {
     tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
+    label 'med_mem'
     //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
     input:
@@ -473,6 +488,7 @@ if(params.skip_variant_calling){}else{
 
   process VCF_indexing {
     tag "Indexes vcf files generated by Variant_Calling"
+    label 'med_mem'
 
     publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
