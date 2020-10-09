@@ -389,7 +389,6 @@ process BAM_file_indexing{
 
   output:
   set sampleId,  file("${bam_file[0]}"), file('*.bai') into ch_bamFilesForBaseRecalibration
-  set sampleId,  file("${bam_file[0]}"), file('*.bai') into ch_bamFilesForApplyBQSR
 
   script:
 
@@ -421,7 +420,7 @@ if(params.dbSNP != 'NO_FILE'){
       set sampleId, file(bam_files), file(bai_file) from ch_bamFilesForBaseRecalibration
       //set sampleId, file(dbSNP) from ch_dbSNP
     output:
-      file("*table") into ch_BQSR
+      set sampleId,  file("${bam_file[0]}"), file('*.bai'), file("*table") into ch_bamFilesForApplyBQSR
 
     script:
 
@@ -437,7 +436,7 @@ if(params.dbSNP != 'NO_FILE'){
     echo true
 
     input:
-      set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR.combine(ch_BQSR)
+      set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
       //set sampleId, file(varBQSR) from ch_BQSR
 
     output:
