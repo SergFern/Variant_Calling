@@ -10,20 +10,18 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
     The typical command for running the pipeline is as follows:
     nextflow run [OPTIONS]
     Options:
-      --genome <GRCh37|GRCh38|[FILE]>  Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
+      --genome <GRCh37 | GRCh38 | [FILE]>  Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
       --region_intervals [BED FILE]    Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
       --dbSNP [FILE]                   Automatically provided when selecting GRCh37 or GRCh38, if using a custom reference and not provided base recalibration will not be performed.
 
-      --paired                         Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
-                                       If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
-      --vc <freebayes>                 Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default:gatk)
-      --GVCFmode                       This flag indicates all samples provided come from the same experiment and thus should be called together. Right now only compatible with freebayes. (default: true)
+      --vc <freebayes | gatk | varscan>                 Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default: freebayes)
+      --GVCFmode <true | false>                      This flag indicates all samples provided come from the same experiment and thus should be called together. As of Oct-2020 only compatible with freebayes. (default: true)
       --common_id [STRING]             Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
 
       --min_alt_fraction               Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
 
-      --remove_duplicates              Remove marked as duplicated reads. Options: true, false (default: false)
-      --indir [DIR]                    The input directory, all fastq files or csv files in this directory will be processed. (default: "$baseDir/$params.indir/alignment")
+      --remove_duplicates <true | false>             Remove marked as duplicated reads. Options: true, false (default: false)
+      --indir [DIR]                    The input directory, all .bam files in this directory will be processed. (default: "$baseDir/$params.outdir/alignment")
       --outdir [DIR]                   The output directory where the results will be saved (default: "$baseDir/$params.outdir/raw_variant_calling_files")
       
 
@@ -140,7 +138,6 @@ if(!params.GVCFmode){
             .map{it -> [params.common_id, it[1]]}
             .groupTuple()
             .set{ch_variant_calling}
-
       }
 
       process Variant_Calling_batch {
@@ -171,6 +168,7 @@ if(!params.GVCFmode){
             def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt_fraction}"
           """
           freebayes ${ploidy} --min-alternate-fraction ${min_alt_fraction_var} ${GVCF} -f ${reference} ${bams} > ${expId}.${params.vc}.vcf
+          cat ${expId}.${params.vc}.vcf | grep -v '<\\*>' > ${expId}.${params.vc}.clean.vcf
           """
           }else if(params.vc == 'varscan'){
 

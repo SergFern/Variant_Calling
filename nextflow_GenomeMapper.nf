@@ -15,24 +15,24 @@ def helpMessage() {
     The typical command for running the pipeline is as follows:
     nextflow run [OPTIONS]
     Options:
-      --genome <GRCh37|GRCh38|[FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
+      --genome <GRCh37 | GRCh38 | [FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
       --adapter_file [FILE]               Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
       --region_intervals [BED FILE]       Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
       --dbSNP [FILE]                      Automatically provided when selecting GRCh37 or GRCh38, if a custom reference is used and a custom_dbSNP is not provided base recalibration will not be performed.
 
-      --paired                            Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
+      --paired <true | false>                           Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
                                           If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
 
-      --reads [GLOB]                      Path to paired-end reads or single-end csv file  (default: "$baseDir/data/*R{1,2}*.fastq.gz (if paired) "$baseDir/data/*.csv" (if single-end))
+      --reads [GLOB]                      Path to paired-end reads or single-end csv file. All data must be compressed. (default: "$baseDir/data/*R{1,2}*.fastq.gz (if paired) "$baseDir/data/*.csv" (if single-end))
                                           CSV format: SampleID, [path/to/read].fastq
-      --aln <bwa|bowtie2>                 Aligner chosen to map reads to the reference. Options: bwa, bowtie2 (default: bwa)
-      --vc  <freebayes|gatk|varscan> Variant caller to use for variant calling. Overrideed by --skip_variant_calling Options: gatk, freebayes, varscan (default:gatk)
+      --aln <bwa | bowtie2>                 Aligner chosen to map reads to the reference. Options: bwa, bowtie2 (default: bwa)
+      --vc  <freebayes | gatk | varscan> Variant caller to use for variant calling. Overrideed by --skip_variant_calling Options: gatk, freebayes, varscan (default:gatk)
                                           By default the variant caller will execute in single sample mode. For joint variant calling use jointVariantCalling.nf pipeline.
-      --common_id [STRING]                Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
+      --common_id "[STRING]"                Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
 
-      --skip_variant_calling              Skips variant calling process entirely, only perform the alignment (default:false)
-      --remove_duplicates                 Remove marked as duplicated reads. Options: true, false (default: false)
-      --min_alt_fraction                  Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
+      --skip_variant_calling <true | false>              Skips variant calling process entirely, only perform the alignment (default: true)
+      --remove_duplicates <true | false>                Remove marked as duplicated reads. Options: true, false (default: false)
+      --min_alt_fraction [NUM]                 Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
       --indir [DIR]                       The input directory, all fastq files or csv files in this directory will be processed. (default: "data")
       --outdir [DIR]                      The output directory where the results will be saved (default: "my-results")
       
@@ -119,7 +119,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     tag "Indexes supplied reference FASTA file (Samtools)"
     label 'med_mem'
 
-    publishDir "$params.indir/custom_reference", mode: 'copy'
+    publishDir "data/custom_reference", mode: 'copy'
 
 
     input:
@@ -139,7 +139,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     tag "Creating Dictionary file (GATK)"
     label 'med_mem'
 
-    publishDir "$params.indir/custom_reference", mode: 'copy'
+    publishDir "data/custom_reference", mode: 'copy'
 
     input:
     file reference_file from ch_reference
@@ -164,7 +164,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     tag "Indexes reference file using the specified aligner"
     label 'med_mem'
 
-    publishDir "$params.indir/custom_reference", mode: 'copy'
+    publishDir "data/custom_reference", mode: 'copy'
 
     input:
     file reference_file from ch_reference
@@ -230,8 +230,8 @@ process FASTQ_Trimming {
 //------------------------------------------------------------Alignment----------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------
 
-def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.fasta": file("${params.indexRef}")
-def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.bowtie2": "${params.indexRef}"
+def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/data/custom_reference/${prefixRef}.fasta": file("${params.indexRef}")
+def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/data/custom_reference/${prefixRef}.bowtie2": "${params.indexRef}"
   
 process Alignment {
 
@@ -371,7 +371,7 @@ if(params.remove_duplicates){
      script:
 
      """
-     gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId[0]}.metrix.dups -O ${sampleId[0]}.${params.aln}.sort.rmdups.bam
+     gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId[0]}.metrix.dups -O ${sampleId[0]}.${params.aln}.rmdups.sort.bam
      """
 
       }
@@ -432,7 +432,7 @@ if(params.dbSNP != 'NO_FILE'){
   process ApplyBQSR {
     tag "Apply previously recalibrated table"
     label 'med_mem'
-    publishDir "$params.outdir/alignment/final", mode: 'copy'
+    publishDir "$params.outdir/alignment", mode: 'copy'
 
     input:
       set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
