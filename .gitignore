@@ -8,3 +8,5 @@ nexflow_trials.nf
 *fasta
 nextflow_trials*
 cleanup.sh
+slurm*
+*test*

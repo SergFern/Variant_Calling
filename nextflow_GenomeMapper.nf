@@ -30,7 +30,7 @@ def helpMessage() {
                                           By default the variant caller will execute in single sample mode. For joint variant calling use jointVariantCalling.nf pipeline.
       --common_id [STRING]                Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
 
-      --skip_variant_calling              Skips variant calling process entirely, only perform the alignment (default:false)
+      --skip_variant_calling              Skips variant calling process entirely, only perform the alignment (default: true)
       --remove_duplicates                 Remove marked as duplicated reads. Options: true, false (default: false)
       --min_alt_fraction                  Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
       --indir [DIR]                       The input directory, all fastq files or csv files in this directory will be processed. (default: "data")
@@ -371,7 +371,7 @@ if(params.remove_duplicates){
      script:
 
      """
-     gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId[0]}.metrix.dups -O ${sampleId[0]}.${params.aln}.sort.rmdups.bam
+     gatk MarkDuplicates -I ${bam_file[0]} -M ${sampleId[0]}.metrix.dups -O ${sampleId[0]}.${params.aln}.rmdups.sort.bam
      """
 
       }
@@ -432,7 +432,7 @@ if(params.dbSNP != 'NO_FILE'){
   process ApplyBQSR {
     tag "Apply previously recalibrated table"
     label 'med_mem'
-    publishDir "$params.outdir/alignment/final", mode: 'copy'
+    publishDir "$params.outdir/alignment", mode: 'copy'
 
     input:
       set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
@@ -445,7 +445,8 @@ if(params.dbSNP != 'NO_FILE'){
     
     script:
       """
-      gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}.sort${rmdups}.bqsr.bam
+      gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bam
+      mv ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bai ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bam.bai
 
       """
 
