@@ -189,10 +189,24 @@ if(!params.GVCFmode){
     input:
       set sampleId, file(vcf_file) from ch_vcf
     output:
-      set sampleId, file("${vcf_file[0]}"), file('*.vcf.idx')
+      set sampleId, file("${vcf_file[0]}"), file('*.vcf.idx') into ch_vcf_sample
 
     script:
     """
     gatk IndexFeatureFile --input ${vcf_file[0]}
+    """
+  }
+
+  process Sample_isolation {
+    tag "From a gVCF isolate different samples with there particular mutations"
+  
+    input:
+      set sampleId, file(vcf_file), file(idx_file) from ch_vcf_sample
+    output:
+      set sampleId, file("*.vcf"), file("${idx_file[0]}")
+  
+    script:
+    """
+    $baseDir/scripts/extract_all_samples ${params.outdir}/raw_variant_calling_files/${vcf_file[0]}
     """
   }
