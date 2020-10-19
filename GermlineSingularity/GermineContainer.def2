@@ -129,10 +129,10 @@ From: ubuntu:16.04
 
 # ######################## VCF-tools #####################
 
-%apprun vcf-subset
-	exec vcf-subset "$@"
+%apprun vcftools
+	exec vcftools "$@"
 
-%appinstall vcf-tools
+%appinstall vcftools
 	git clone https://github.com/vcftools/vcftools.git
 	cd vcftools
 	./autogen.sh
@@ -140,8 +140,13 @@ From: ubuntu:16.04
 	make
 	make install
 
-%apphelp vcf-subset
+%apphelp vcftools
 	vcftools subset https://manpages.debian.org/testing/vcftools/vcf-subset.1.en.html
+
+# ######################## VCF-tools vcf-subset #####################
+
+%apprun vcf-subset
+	exec vcf-subset "$@"
    
 # ######################## Bowtie2 ################################
 

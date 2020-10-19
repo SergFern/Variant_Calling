@@ -1,0 +1,22 @@
+#!/bin/bash
+
+version="program version #0.1
+Written by bioinfo-serg."
+
+usage="Usage: $0 [FILE]
+Description:
+
+Extracts all samples in a gVCF and writes them into separte VCF files.
+
+Report bugs to <Pilar>."
+
+case $1 in
+--help)    exec echo "$usage";;
+--version) exec echo "$version";;
+esac
+
+for sample in `bcftools query -l $1`
+do
+vcf-subset --exclude-ref -c $sample $1 > ${sample}.vcf
+done
+
