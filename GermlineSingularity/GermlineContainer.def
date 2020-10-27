@@ -119,11 +119,12 @@ From: ubuntu:16.04
 
 %appinstall vcftools
 	git clone https://github.com/vcftools/vcftools.git
-	cd vcftools
-	./autogen.sh
-	./configure
-	make
-	make install
+		cd vcftools
+		./autogen.sh
+		./configure
+		make
+		make install
+		cd ..
 
 %apphelp vcftools
 	vcftools subset https://manpages.debian.org/testing/vcftools/vcf-subset.1.en.html
@@ -133,7 +134,6 @@ From: ubuntu:16.04
 %apprun vcf-subset
 	exec vcf-subset "$@"
 
-
 # ######################### BCFtools #####################
 
 %apprun bcftools
@@ -141,8 +141,10 @@ From: ubuntu:16.04
 
 %appinstall bcftools
 	git clone git://github.com/samtools/bcftools.git
-	cd bcftools
-	make
+		cd bcftools
+		autoheader && autoconf && ./configure --enable-libgsl --enable-perl-filters 
+		make
+		cd ..
 
 %apphelp
 	bcftools http://samtools.github.io/bcftools/bcftools.html
