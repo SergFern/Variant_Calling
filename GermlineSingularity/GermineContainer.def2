@@ -14,21 +14,6 @@ From: ubuntu:16.04
 	#wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz
 	#tar xvfz /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
 
-# ######################## VCFtools ######################
-
-%apprun vcf-subset
-	exec vcf-subset "$@"
-
-%appinstall vcf-subset
-	git clone https://github.com/vcftools/vcftools.git
-	cd vcftools
-	./autogen.sh
-	./configure
-	make
-	make install
-
-%apphelp vcf-subset
-	vcftools - vcf-subset https://github.com/vcftools/vcftools
 
 # ######################### FastQC #######################
 %apprun fastqc
@@ -147,7 +132,21 @@ From: ubuntu:16.04
 
 %apprun vcf-subset
 	exec vcf-subset "$@"
-   
+
+
+# ######################### BCFtools #####################
+
+%apprun bcftools
+	exec bcftools "$@"
+
+%appinstall bcftools
+	git clone git://github.com/samtools/bcftools.git
+	cd bcftools
+	make
+
+%apphelp
+	bcftools http://samtools.github.io/bcftools/bcftools.html
+
 # ######################## Bowtie2 ################################
 
 %apprun bowtie2
@@ -223,6 +222,6 @@ From: ubuntu:16.04
 %labels
 	Author Fernández-Val
 	Co-author Fernández-Peñalver-Sergio
-	Version v1.2
+	Version v1.5
 
 
