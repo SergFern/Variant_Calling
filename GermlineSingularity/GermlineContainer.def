@@ -1,0 +1,227 @@
+BootStrap: docker
+From: ubuntu:16.04
+
+%post
+
+    # install some system deps
+    apt-get -y update
+    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip r-base-core pkg-config
+    apt-get clean 
+
+
+	#wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/Ensembl/GRCh37/Homo_sapiens_Ensembl_GRCh37.tar.gz
+	#tar xvfz /home/BBDD/Homo_sapiens_Ensembl_GRCh37.tar.gz
+	#wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz
+	#tar xvfz /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
+
+
+# ######################### FastQC #######################
+%apprun fastqc
+ exec fastqc "$@"
+
+%appinstall fastqc
+ wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip
+ unzip -o fastqc_v0.11.9.zip -d /usr/local/bin
+ rm fastqc_v0.11.9.zip
+ chmod +x /usr/local/bin/FastQC/fastqc
+ echo "/usr/local/bin/Fastqc/fastqc \"\$@\"" >> ~/fastqc
+ chmod +x ~/fastqc
+ mv ~/fastqc /usr/local/bin/
+ 
+
+%apphelp fastqc
+  FastQC https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+
+# ######################### Qualimap bamqc #######################
+
+%apprun bamqc
+	exec bamqc "$@"
+
+%appinstall bamqc
+  wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.2.1.zip
+	unzip -o qualimap_v2.2.1.zip -d /usr/local/bin
+	echo "/usr/local/bin/qualimap_v2.2.1/qualimap bamqc \"\$@\"" >> ~/bamqc
+	chmod +x ~/bamqc
+	mv ~/bamqc /usr/local/bin/
+	rm qualimap_v2.2.1.zip
+
+%apphelp bamqc
+	Qualimap bamqc http://qualimap.bioinfo.cipf.es/doc_html/index.html
+
+# ######################### Qualimap #######################
+%apprun qualimap
+	exec qualimap "$@"
+
+%appinstall qualimap
+	echo "/usr/local/bin/qualimap_v2.2.1/qualimap \"\$@\"" >> ~/qualimap
+	chmod +x ~/qualimap
+	mv ~/qualimap /usr/local/bin/
+
+%apphelp qualimap
+	Qualimap http://qualimap.bioinfo.cipf.es/doc_html/index.html
+
+# ######################### MultiQC #######################
+%apprun multiqc
+	exec multiqc "$@"
+
+%appinstall multiqc
+	pip3 install multiqc
+	
+%apphelp multiqc
+ 	MultiQC https://multiqc.info/
+# ######################### Trimmomatic #######################
+
+%apprun trimmomatic
+   exec trimmomatic "$@"
+
+%appinstall trimmomatic
+   wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
+		unzip -o Trimmomatic-0.39.zip -d /usr/local/bin
+		echo "#"'!'"/bin/bash" > ~/trimmomatic
+		echo "java -jar /usr/local/bin/Trimmomatic-0.39/trimmomatic-0.39.jar \"\$@\"" >> ~/trimmomatic
+		chmod +x ~/trimmomatic
+		mv ~/trimmomatic /usr/local/bin/
+		rm Trimmomatic-0.39.zip
+
+%apphelp trimmomatic
+   Trimmomatic 0.39. http://www.usadellab.org/cms/?page=trimmomatic
+
+# ################### Samtools #################################
+
+%apprun samtools
+   exec samtools "$@"
+
+%appinstall samtools
+	git clone https://github.com/samtools/htslib
+    
+		cd htslib
+		autoheader
+		autoconf
+		./configure
+		make -j 8
+		make install
+		cd ..
+	git clone https://github.com/samtools/samtools
+		cd samtools
+		autoheader
+		autoconf -Wno-syntax
+		./configure
+		make -j 8
+		make install
+		cd ..
+ %apphelp samtools
+   samtools . http://www.htslib.org/
+
+# ######################## VCF-tools #####################
+
+%apprun vcftools
+	exec vcftools "$@"
+
+%appinstall vcftools
+	git clone https://github.com/vcftools/vcftools.git
+	cd vcftools
+	./autogen.sh
+	./configure
+	make
+	make install
+
+%apphelp vcftools
+	vcftools subset https://manpages.debian.org/testing/vcftools/vcf-subset.1.en.html
+
+# ######################## VCF-tools vcf-subset #####################
+
+%apprun vcf-subset
+	exec vcf-subset "$@"
+
+
+# ######################### BCFtools #####################
+
+%apprun bcftools
+	exec bcftools "$@"
+
+%appinstall bcftools
+	git clone git://github.com/samtools/bcftools.git
+	cd bcftools
+	make
+
+%apphelp
+	bcftools http://samtools.github.io/bcftools/bcftools.html
+
+# ######################## Bowtie2 ################################
+
+%apprun bowtie2
+   exec bowtie2 "$@"
+
+%appinstall bowtie2
+     wget https://github.com/BenLangmead/bowtie2/releases/download/v2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip
+      unzip bowtie2-2.3.5.1-linux-x86_64.zip
+	  cp bowtie2-2.3.5.1-linux-x86_64/bowtie2* /usr/local/bin/
+ 
+%apphelp bowtie2
+   Bowtie 2 v. 2.3.5.1 . http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
+   
+# ########################## VarScan #################################
+
+%apprun varscan
+   exec varscan "$@"
+
+%appinstall varscan
+    wget https://github.com/dkoboldt/varscan/raw/master/VarScan.v2.4.4.jar
+	  mv VarScan.v2.4.4.jar /usr/local/bin/
+	  echo "#"'!'"/bin/bash" > /usr/local/bin/varscan
+	  echo "java -jar /usr/local/bin/VarScan.v2.4.4.jar \"\$@\"" >> /usr/local/bin/varscan
+	  chmod +x /usr/local/bin/varscan
+   
+
+%apphelp varscan
+   VarScan 2.4.4 . https://github.com/dkoboldt/varscan
+
+# ######################### BWA #####################################
+%apprun bwa
+	exec bwa "$@"
+%appinstall bwa
+	  wget https://github.com/lh3/bwa/releases/download/v0.7.17/bwa-0.7.17.tar.bz2
+	  tar xvfj bwa-0.7.17.tar.bz2
+	  cd bwa-0.7.17/
+	  make 
+	  cp bwa /usr/local/bin
+%apphelp bwa
+	bwa . https://github.com/lh3/bwa
+
+# ####################### FreeBayes #################################
+%apprun freebayes
+	exec freebayes "$@"
+%appinstall freebayes
+	  wget https://github.com/ekg/freebayes/releases/download/v1.3.1/freebayes-v1.3.1
+	  mv freebayes-v1.3.1 freebayes
+	  chmod og+x freebayes
+	  cp freebayes /usr/local/bin/
+    
+	
+	
+%apphelp freebayes
+	freebayes . https://github.com/ekg/freebayes
+
+# ###################### GATK #######################################
+%apprun gatk
+	exec gatk "$@"
+
+%appinstall gatk
+ 	wget https://github.com/broadinstitute/gatk/releases/download/4.1.4.1/gatk-4.1.4.1.zip
+	unzip gatk-4.1.4.1.zip
+	ln -s /scif/apps/gatk/gatk-4.1.4.1/gatk /usr/local/bin
+	  
+%apphelp gatk
+
+	gatk . https://gatk.broadinstitute.org/hc/en-us
+
+%appenv gatk
+
+###############################################
+
+%labels
+	Author Fernández-Val
+	Co-author Fernández-Peñalver-Sergio
+	Version v1.5
+
+
