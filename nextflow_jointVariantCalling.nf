@@ -8,7 +8,9 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
 
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run [OPTIONS]
+    ./nextflow_jointVariantCalling.nf [OPTIONS]
+
+
     Options:
       --genome <GRCh37 | GRCh38 | [FILE]>  Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
       --region_intervals [BED FILE]    Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
@@ -22,7 +24,7 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
 
       --remove_duplicates <true | false>             Remove marked as duplicated reads. Options: true, false (default: false)
       --indir [DIR]                    The input directory, all .bam files in this directory will be processed. (default: "$baseDir/$params.outdir/alignment")
-      --outdir [DIR]                   The output directory where the results will be saved (default: "$baseDir/$params.outdir/raw_variant_calling_files")
+      --outdir [DIR]                   The output directory where the results will be saved (default: "$baseDir/$params.outdir")
       
 
     """.stripIndent()
@@ -50,7 +52,7 @@ remove_duplicates    : $params.remove_duplicates
 min_alt_fraction     : $params.min_alt_fraction
 
 read_directory       : ./$params.indir/alignment
-results              : ./$params.outdir
+results              : ./$params.outdir/raw_variant_calling_files
 ===============================================================
 """
 
