@@ -17,13 +17,13 @@ def helpMessage() {
     Options:
       --genome <GRCh37 | GRCh38 | [FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
       --adapter_file [FILE]                   Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
-      --region_intervals [BED FILE]           Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --region_intervals [BED FILE]           Complete path to specific genomic region in .list format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
       --dbSNP [FILE]                          Automatically provided when selecting GRCh37 or GRCh38, if a custom reference is used and a custom_dbSNP is not provided base recalibration will not be performed.
 
       --paired <true | false>                 Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
                                               If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
 
-      --reads [GLOB]                          Path to paired-end reads or single-end csv file. All data must be compressed. (default: "$baseDir/data/*R{1,2}*.fastq.gz (if paired) "$baseDir/data/*.csv" (if single-end))
+      --reads [GLOB]                          Glob pattern to identify paired-end reads or the single-end csv file. All data must be compressed. (default: "$baseDir/data/*R{1,2}*.fastq.gz (if paired) "$baseDir/data/*.csv" (if single-end))
                                               CSV format: SampleID, [path/to/read].fastq
       --aln <bwa | bowtie2>                   Aligner chosen to map reads to the reference. Options: bwa, bowtie2 (default: bwa)
       --vc  <freebayes | gatk | varscan>      Variant caller to use for variant calling. Overrideed by --skip_variant_calling Options: gatk, freebayes, varscan (default:gatk)
@@ -455,6 +455,8 @@ if(params.dbSNP != 'NO_FILE'){
 
 if(params.skip_variant_calling){}else{
 
+def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt_fraction}"
+
   process Variant_Calling_single {
     tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
     label 'med_mem'
@@ -471,16 +473,16 @@ if(params.skip_variant_calling){}else{
       if(params.vc == 'gatk'){
 
       """
-      gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId[0]}.${params.vc}.vcf -R ${reference} ${params.vcOpts}
+      gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId[0]}.${params.vc}.vcf -R ${params.seqRef} ${params.vcOpts}
       """
       }else if(params.vc == 'freebayes'){
 
       """
-      freebayes --min-alternate-fraction ${params.min_alt_fraction} -f ${reference} ${bam_file[0]} > ${sampleId[0]}.${params.vc}.vcf
+      freebayes --min-alternate-fraction ${min_alt_fraction_var} -f ${params.seqRef} ${bam_file[0]} > ${sampleId[0]}.${params.vc}.vcf
       """
       }else if(params.vc == 'varscan'){
       """
-      samtools mpileup -B -f ${reference} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
+      samtools mpileup -B -f ${params.seqRef} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
       
       """
       }
