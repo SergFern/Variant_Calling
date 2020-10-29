@@ -9,3 +9,5 @@ nexflow_trials.nf
 nextflow_trials*
 cleanup.sh
 *.vcf
+logs/*.html
+results
