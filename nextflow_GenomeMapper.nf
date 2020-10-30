@@ -113,7 +113,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
 
   ch_reference = file(params.genome, checkIfExists: true)
-  //(ch_reference_idx, ch_reference_dic) = Channel.from(ch_reference).into(2) apparently there is no need for this?
+
 
   process Indexing_custom_genome {
     tag "Indexes supplied reference FASTA file (Samtools)"
@@ -154,10 +154,10 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     """
     
   }
-
+  // coppy custom reference into a /reference directory were all custom references are stored.
   custom_reference = file("$params.genome")    
   custom_reference.copyTo("$params.indir/reference/")
-
+  // Extract file name:
   prefixRef = custom_reference.name.take(custom_reference.name.lastIndexOf('.'))
 
   process Custom_genome_indexing {
@@ -405,7 +405,8 @@ process BAM_file_indexing{
                     ? [ ch_bamFilesForBaseRecalibration ]
                     : [ Channel.empty() ] )*/
 
-
+// Telling nextflow seqRef is a path to a file.
+def seqRef = file(params.seqRef)
 
 if(params.dbSNP != 'NO_FILE'){
 
@@ -466,23 +467,22 @@ def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt
       set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
     output:
       set sampleId, file('*vcf') into ch_vcf
-    //reference = file(params.seqRef)
 
     script:
 
       if(params.vc == 'gatk'){
 
       """
-      gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId[0]}.${params.vc}.vcf -R ${params.seqRef} ${params.vcOpts}
+      gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId[0]}.${params.vc}.vcf -R ${seqRef} ${params.vcOpts}
       """
       }else if(params.vc == 'freebayes'){
 
       """
-      freebayes --min-alternate-fraction ${min_alt_fraction_var} -f ${params.seqRef} ${bam_file[0]} > ${sampleId[0]}.${params.vc}.vcf
+      freebayes --min-alternate-fraction ${min_alt_fraction_var} -f ${seqRef} ${bam_file[0]} > ${sampleId[0]}.${params.vc}.vcf
       """
       }else if(params.vc == 'varscan'){
       """
-      samtools mpileup -B -f ${params.seqRef} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
+      samtools mpileup -B -f ${seqRef} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
       
       """
       }
