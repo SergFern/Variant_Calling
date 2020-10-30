@@ -202,13 +202,13 @@ if(!params.GVCFmode){
 
 
   process Sample_isolation {
-    tag "From a gVCF isolate different samples with there particular mutations"
+    tag "From a gVCF isolate different samples with their particular mutations"
     publishDir "$params.outdir/raw_variant_calling_files/samples_isolates", mode: 'copy'
   
     input:
       set sampleId, file(vcf_file), file(idx_file) from ch_vcf_sample
     output:
-      set sampleId, file("*.vcf") into ch_vcf_sample_index
+      file("*.vcf") into ch_vcf_sample_index
   
     script:
     """
@@ -216,17 +216,19 @@ if(!params.GVCFmode){
     """
   }
 
+    
     process Sample_indexing {
-    tag "From a gVCF isolate different samples with there particular mutations"
+    tag "index vcf files of isolated samples"
     publishDir "$params.outdir/raw_variant_calling_files/samples_isolates", mode: 'copy'
   
     input:
-      set sampleId, file(vcf_file) from ch_vcf_sample_index
+      file(vcf_file) from ch_vcf_sample_index.flatten()
     output:
-      set sampleId, file("${vcf_file[0]}"), file('*.vcf.idx')
+      file("${vcf_file}")
+      file('*.vcf.idx')
   
     script:
     """
-    gatk IndexFeatureFile --input ${vcf_file[0]}
+    gatk IndexFeatureFile --input ${vcf_file}
     """
   }
