@@ -1,20 +1,19 @@
 #!/usr/bin/env nextflow
 
 def helpMessage() {
-    log.info"""
-    ==================================================================
-    ${workflow.manifest.name}  ~  version ${workflow.manifest.version}
-    ==================================================================
 
-    Git info: $workflow.repository - $workflow.revision [$workflow.commitId]
+    log.info"""
+    ================================================================
+    V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
+    ================================================================
 
     Usage:
     The typical command for running the pipeline is as follows:
     nextflow run [OPTIONS]
     Options:
       
-      --indir                          The input directory, all vcf files in this directory will be processed. (default: $params.outdir/raw_variant_calling)
-      --outdir                         The output directory where the results will be saved (default: $params.outdir)
+      --indir                          The input directory of original data, all vcf files in this directory will be processed. (default: $params.indir)
+      --outdir                         The output directory where the results will be saved (default: $params.outdir/curated_variant_calling)
       
 
     """.stripIndent()
@@ -29,7 +28,7 @@ if (params.help){
 log.info """\
 
 ================================================================
-V A R I A N T  C A L L E R  - I R Y C I S    v 1.1-Fixing Sample Names
+V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
 ================================================================
 read_directory       : ./$params.VCF_files
 results              : ./$params.outdir/curated_variant_calling_files
