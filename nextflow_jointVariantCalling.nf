@@ -12,19 +12,19 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
 
 
     Options:
-      --genome <GRCh37 | GRCh38 | [FILE]>  Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
-      --region_intervals [BED FILE]    Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
-      --dbSNP [FILE]                   Automatically provided when selecting GRCh37 or GRCh38, if using a custom reference and not provided base recalibration will not be performed.
+      --genome <GRCh37 | GRCh38 | [FILE]>   Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
+      --region_intervals [BED FILE]         Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --dbSNP [FILE]                        Automatically provided when selecting GRCh37 or GRCh38, if using a custom reference and not provided base recalibration will not be performed.
 
-      --vc <freebayes | gatk | varscan>                 Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default: freebayes)
-      --GVCFmode <true | false>                      This flag indicates all samples provided come from the same experiment and thus should be called together. As of Oct-2020 only compatible with freebayes. (default: true)
-      --common_id [STRING]             Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
+      --vc <freebayes | gatk | varscan>     Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default: freebayes)
+      --GVCFmode <true | false>             This flag indicates all samples provided come from the same experiment and thus should be called together. As of Oct-2020 only compatible with freebayes. (default: true)
+      --common_id [STRING]                  Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
 
-      --min_alt_fraction               Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
+      --min_alt_fraction                    Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
 
-      --remove_duplicates <true | false>             Remove marked as duplicated reads. Options: true, false (default: false)
-      --indir [DIR]                    The input directory, all .bam files in this directory will be processed. (default: "$baseDir/$params.outdir/alignment")
-      --outdir [DIR]                   The output directory where the results will be saved (default: "$baseDir/$params.outdir")
+      --remove_duplicates <true | false>    Remove marked as duplicated reads. Options: true, false (default: false)
+      --indir [DIR]                         The input directory, all .bam files in this directory will be processed. (default: "$baseDir/$params.outdir/alignment")
+      --outdir [DIR]                        The output directory where the results will be saved (default: "$baseDir/$params.outdir")
       
 
     """.stripIndent()
@@ -51,7 +51,8 @@ remove_duplicates    : $params.remove_duplicates
 
 min_alt_fraction     : $params.min_alt_fraction
 
-read_directory       : ./$params.indir/alignment
+read_directory       : ./$params.indir
+vcf_directory        : ./$params.outdir/alignment
 results              : ./$params.outdir/raw_variant_calling_files
 ===============================================================
 """
@@ -71,7 +72,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
 
 def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
-def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.fasta": params.indexRef
+def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/data/custom_reference/${prefixRef}.fasta": params.indexRef
 
 if(!params.GVCFmode){
 
@@ -199,16 +200,33 @@ if(!params.GVCFmode){
     """
   }
 
+
   process Sample_isolation {
     tag "From a gVCF isolate different samples with there particular mutations"
+    publishDir "$params.outdir/raw_variant_calling_files/samples_isolates", mode: 'copy'
   
     input:
       set sampleId, file(vcf_file), file(idx_file) from ch_vcf_sample
     output:
-      set sampleId, file("*.vcf"), file("${idx_file[0]}")
+      set sampleId, file("*.vcf") into ch_vcf_sample_index
   
     script:
     """
-    $baseDir/scripts/extract_all_samples ${params.outdir}/raw_variant_calling_files/${vcf_file[0]}
+    $baseDir/scripts/extract_all_samples ${vcf_file[0]}
+    """
+  }
+
+    process Sample_indexing {
+    tag "From a gVCF isolate different samples with there particular mutations"
+    publishDir "$params.outdir/raw_variant_calling_files/samples_isolates", mode: 'copy'
+  
+    input:
+      set sampleId, file(vcf_file) from ch_vcf_sample_index
+    output:
+      set sampleId, file("${vcf_file[0]}"), file('*.vcf.idx')
+  
+    script:
+    """
+    gatk IndexFeatureFile --input ${vcf_file[0]}
     """
   }
