@@ -17,6 +17,6 @@ esac
 
 for sample in `bcftools query -l $1`
 do
-vcf-subset --exclude-ref -c $sample $1 > ${sample}.vcf
+bcftools view -s $sample -a $1 > ${sample}.vcf
 done
 
