@@ -1,12 +1,17 @@
 BootStrap: docker
 From: ubuntu:16.04
+OSVersion: xenial
 
 %post
 
     # install some system deps
+	echo "deb http://cloud.r-project.org/bin/linux/ubuntu xenial-cran40/" >> /etc/apt/sources.list
+	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
     apt-get -y update
-    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip r-base-core pkg-config
-    apt-get clean 
+    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip r-base-core pkg-config libcurl4-openssl-dev libxml2-dev r-base r-base-dev
+
+    R -e "install.packages('digest')"
+    R -e "install.packages('tidyverse')"
 
 
 	#wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/Ensembl/GRCh37/Homo_sapiens_Ensembl_GRCh37.tar.gz
@@ -49,7 +54,6 @@ From: ubuntu:16.04
 	Qualimap bamqc http://qualimap.bioinfo.cipf.es/doc_html/index.html
 
 # ######################### Qualimap #######################
-
 %apprun qualimap
 	exec qualimap "$@"
 
@@ -62,7 +66,6 @@ From: ubuntu:16.04
 	Qualimap http://qualimap.bioinfo.cipf.es/doc_html/index.html
 
 # ######################### MultiQC #######################
-
 %apprun multiqc
 	exec multiqc "$@"
 
@@ -71,7 +74,6 @@ From: ubuntu:16.04
 	
 %apphelp multiqc
  	MultiQC https://multiqc.info/
-
 # ######################### Trimmomatic #######################
 
 %apprun trimmomatic
@@ -104,7 +106,6 @@ From: ubuntu:16.04
 		make -j 8
 		make install
 		cd ..
-
 	git clone https://github.com/samtools/samtools
 		cd samtools
 		autoheader
@@ -123,12 +124,12 @@ From: ubuntu:16.04
 
 %appinstall vcftools
 	git clone https://github.com/vcftools/vcftools.git
-	cd vcftools
-	./autogen.sh
-	./configure
-	make
-	make install
-	cd ..
+		cd vcftools
+		./autogen.sh
+		./configure
+		make
+		make install
+		cd ..
 
 %apphelp vcftools
 	vcftools subset https://manpages.debian.org/testing/vcftools/vcf-subset.1.en.html
@@ -138,18 +139,13 @@ From: ubuntu:16.04
 %apprun vcf-subset
 	exec vcf-subset "$@"
 
-
 # ######################### BCFtools #####################
 
 %apprun bcftools
 	exec bcftools "$@"
 
 %appinstall bcftools
-	git clone git://github.com/samtools/bcftools.git
-	cd bcftools
-	autoheader && autoconf && ./configure --enable-libgsl --enable-perl-filters 
-	make
-	cd ..
+	apt-get install bcftools
 
 %apphelp
 	bcftools http://samtools.github.io/bcftools/bcftools.html
@@ -224,11 +220,53 @@ From: ubuntu:16.04
 
 %appenv gatk
 
-###############################################
+
+# ###################### MINIMAP #######################################
+
+%apprun minimap
+	exec minimap2 "$@"
+
+%appinstall minimap
+	apt-get install minimap2
+
+%apphelp minimap
+	https://github.com/lh3/minimap2#general
+
+
+# ###################### transIndel_build_DNA #######################################
+
+%apprun transIndel_build_DNA
+	exec transIndel_build_DNA "$@"
+
+%appinstall transIndel_build_DNA
+	git clone https://github.com/cauyrd/transIndel
+	cd transIndel
+	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_build_DNA
+	echo "python transIndel_build_DNA \"\$@\"" >> /usr/local/bin/transIndel_build_DNA
+	chmod +x /usr/local/bin/transIndel_build_DNA
+
+%apphelp transIndel_build_DNA
+	https://github.com/cauyrd/transIndel
+
+# ###################### transIndel_call #######################################
+
+%apprun transIndel_call
+	exec transIndel_call "$@"
+
+%appinstall transIndel_call
+	cd transIndel
+	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_call
+	echo "python transIndel_build_DNA \"\$@\"" >> /usr/local/bin/transIndel_call
+	chmod +x /usr/local/bin/transIndel_call
+
+%apphelp transIndel_call
+	https://github.com/cauyrd/transIndel
+
+##############################################################################
 
 %labels
 	Author Fernández-Val
 	Co-author Fernández-Peñalver-Sergio
-	Version v1.5
+	Version v2.0
 
 
