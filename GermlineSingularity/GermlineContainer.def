@@ -10,7 +10,6 @@ OSVersion: xenial
     apt-get -y update
     apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip r-base-core pkg-config libcurl4-openssl-dev libxml2-dev r-base r-base-dev
 
-
     R -e "install.packages('digest')"
     R -e "install.packages('tidyverse')"
 
@@ -221,11 +220,53 @@ OSVersion: xenial
 
 %appenv gatk
 
-###############################################
+
+# ###################### MINIMAP #######################################
+
+%apprun minimap
+	exec minimap2 "$@"
+
+%appinstall minimap
+	apt-get install minimap2
+
+%apphelp minimap
+	https://github.com/lh3/minimap2#general
+
+
+# ###################### transIndel_build_DNA #######################################
+
+%apprun transIndel_build_DNA
+	exec transIndel_build_DNA "$@"
+
+%appinstall transIndel_build_DNA
+	git clone https://github.com/cauyrd/transIndel
+	cd transIndel
+	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_build_DNA
+	echo "python transIndel_build_DNA \"\$@\"" >> /usr/local/bin/transIndel_build_DNA
+	chmod +x /usr/local/bin/transIndel_build_DNA
+
+%apphelp transIndel_build_DNA
+	https://github.com/cauyrd/transIndel
+
+# ###################### transIndel_call #######################################
+
+%apprun transIndel_call
+	exec transIndel_call "$@"
+
+%appinstall transIndel_call
+	cd transIndel
+	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_call
+	echo "python transIndel_build_DNA \"\$@\"" >> /usr/local/bin/transIndel_call
+	chmod +x /usr/local/bin/transIndel_call
+
+%apphelp transIndel_call
+	https://github.com/cauyrd/transIndel
+
+##############################################################################
 
 %labels
 	Author Fernández-Val
 	Co-author Fernández-Peñalver-Sergio
-	Version v1.5
+	Version v2.0
 
 
