@@ -55,7 +55,6 @@ OSVersion: xenial
 	exec transIndel_call "$@"
 
 %appinstall transIndel_call
-	mv transIndel /usr/local/bin
 	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_call
 	echo "python /usr/local/bin/transIndel/transIndel_call \"\$@\"" >> /usr/local/bin/transIndel_call
 	chmod +x /usr/local/bin/transIndel_call
@@ -63,7 +62,6 @@ OSVersion: xenial
 %apphelp transIndel_call
 	https://github.com/cauyrd/transIndel
 
-##############################################################################
 
 # ######################### FastQC #######################
 %apprun fastqc
@@ -265,7 +263,7 @@ OSVersion: xenial
 
 %appenv gatk
 
-
+##############################################################################
 
 
 %labels
