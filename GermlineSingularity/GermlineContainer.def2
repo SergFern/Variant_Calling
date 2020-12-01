@@ -19,6 +19,51 @@ OSVersion: xenial
 	#wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz
 	#tar xvfz /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
 
+# ###################### MINIMAP #######################################
+
+%apprun minimap
+	exec minimap2 "$@"
+
+%appinstall minimap
+	curl -L https://github.com/lh3/minimap2/releases/download/v2.17/minimap2-2.17_x64-linux.tar.bz2 | tar -jxvf -
+	
+	mv minimap2-2.17_x64-linux /usr/local/bin
+	ln -s /usr/local/bin/minimap2-2.17_x64-linux/minimap2 /usr/local/bin
+
+%apphelp minimap
+	https://github.com/lh3/minimap2#general
+
+
+# ###################### transIndel_build_DNA #######################################
+
+%apprun transIndel_build_DNA
+	exec transIndel_build_DNA "$@"
+
+%appinstall transIndel_build_DNA
+	git clone https://github.com/cauyrd/transIndel
+	mv transIndel /usr/local/bin
+	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_build_DNA
+	echo "python usr/local/bin/transIndel/transIndel_build_DNA \"\$@\"" >> /usr/local/bin/transIndel_build_DNA
+	chmod +x /usr/local/bin/transIndel_build_DNA
+
+%apphelp transIndel_build_DNA
+	https://github.com/cauyrd/transIndel
+
+# ###################### transIndel_call #######################################
+
+%apprun transIndel_call
+	exec transIndel_call "$@"
+
+%appinstall transIndel_call
+	mv transIndel /usr/local/bin
+	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_call
+	echo "python /usr/local/bin/transIndel/transIndel_call \"\$@\"" >> /usr/local/bin/transIndel_call
+	chmod +x /usr/local/bin/transIndel_call
+
+%apphelp transIndel_call
+	https://github.com/cauyrd/transIndel
+
+##############################################################################
 
 # ######################### FastQC #######################
 %apprun fastqc
@@ -221,48 +266,7 @@ OSVersion: xenial
 %appenv gatk
 
 
-# ###################### MINIMAP #######################################
 
-%apprun minimap
-	exec minimap2 "$@"
-
-%appinstall minimap
-	apt-get install minimap2
-
-%apphelp minimap
-	https://github.com/lh3/minimap2#general
-
-
-# ###################### transIndel_build_DNA #######################################
-
-%apprun transIndel_build_DNA
-	exec transIndel_build_DNA "$@"
-
-%appinstall transIndel_build_DNA
-	git clone https://github.com/cauyrd/transIndel
-	cd transIndel
-	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_build_DNA
-	echo "python transIndel_build_DNA \"\$@\"" >> /usr/local/bin/transIndel_build_DNA
-	chmod +x /usr/local/bin/transIndel_build_DNA
-
-%apphelp transIndel_build_DNA
-	https://github.com/cauyrd/transIndel
-
-# ###################### transIndel_call #######################################
-
-%apprun transIndel_call
-	exec transIndel_call "$@"
-
-%appinstall transIndel_call
-	cd transIndel
-	echo "#"'!'"/bin/bash" > /usr/local/bin/transIndel_call
-	echo "python transIndel_build_DNA \"\$@\"" >> /usr/local/bin/transIndel_call
-	chmod +x /usr/local/bin/transIndel_call
-
-%apphelp transIndel_call
-	https://github.com/cauyrd/transIndel
-
-##############################################################################
 
 %labels
 	Author Fernández-Val
