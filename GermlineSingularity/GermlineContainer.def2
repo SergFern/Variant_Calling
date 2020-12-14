@@ -8,11 +8,11 @@ OSVersion: xenial
 	echo "deb http://cloud.r-project.org/bin/linux/ubuntu xenial-cran40/" >> /etc/apt/sources.list
 	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
     apt-get -y update
-    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip r-base-core pkg-config libcurl4-openssl-dev libxml2-dev r-base r-base-dev
+    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3.6 python3-pip r-base-core pkg-config libcurl4-openssl-dev libxml2-dev r-base r-base-dev
 	
     pip3 install pysam
-    update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-    update-alternatives  --set python /usr/bin/python3
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
+    update-alternatives  --set python /usr/bin/python3.6
 
     R -e "install.packages('digest')"
     R -e "install.packages('tidyverse')"
