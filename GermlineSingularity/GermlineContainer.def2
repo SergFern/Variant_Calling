@@ -23,6 +23,7 @@ OSVersion: xenial
     wget https://bootstrap.pypa.io/get-pip.py
     python2.7 get-pip.py
     pip install pysam
+    pip install numpy
 
     R -e "install.packages('digest')"
     R -e "install.packages('tidyverse')"
