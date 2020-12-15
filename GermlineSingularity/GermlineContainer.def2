@@ -20,7 +20,9 @@ OSVersion: xenial
     update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
     update-alternatives --set python /usr/bin/python2.7
 
-    python2.7 -m pip install pysam
+    wget https://bootstrap.pypa.io/get-pip.py
+    python2.7 get-pip.py
+    pip install pysam
 
     R -e "install.packages('digest')"
     R -e "install.packages('tidyverse')"
