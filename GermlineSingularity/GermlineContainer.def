@@ -140,7 +140,7 @@ OSVersion: xenial
    exec trimmomatic "$@"
 
 %appinstall trimmomatic
-   apt-get -y trimmomatic
+   apt-get -y install trimmomatic
 
 %apphelp trimmomatic
    exec man trimmomatic
