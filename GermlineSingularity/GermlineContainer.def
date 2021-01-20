@@ -81,16 +81,10 @@ OSVersion: xenial
    exec trimmomatic "$@"
 
 %appinstall trimmomatic
-   wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
-		unzip -o Trimmomatic-0.39.zip -d /usr/local/bin
-		echo "#"'!'"/bin/bash" > ~/trimmomatic
-		echo "java -jar /usr/local/bin/Trimmomatic-0.39/trimmomatic-0.39.jar \"\$@\"" >> ~/trimmomatic
-		chmod +x ~/trimmomatic
-		mv ~/trimmomatic /usr/local/bin/
-		rm Trimmomatic-0.39.zip
+   apt-get -y trimmomatic
 
 %apphelp trimmomatic
-   Trimmomatic 0.39. http://www.usadellab.org/cms/?page=trimmomatic
+   exec man trimmomatic
 
 # ################### Samtools #################################
 
