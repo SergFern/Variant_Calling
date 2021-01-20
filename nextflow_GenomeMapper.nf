@@ -15,10 +15,12 @@ def helpMessage() {
     ./nextflow_GenomeMapper.nf [OPTIONS]
 
     Options:
+      --indir [DIR]                           The input directory, all fastq files or csv files in this directory will be processed. (default: "data")
+      --outdir [DIR]                          The output directory where the results will be saved (default: "my-results")
       --genome <GRCh37 | GRCh38 | [FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
       --adapter_file [FILE]                   Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
       --region_intervals [BED FILE]           Complete path to specific genomic region in .list format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
-      --dbSNP [FILE]                          Automatically provided when selecting GRCh37 or GRCh38, if a custom reference is used and a custom_dbSNP is not provided base recalibration will not be performed.
+      --dbSNP [FILE]                          Automatically provided when selecting GRCh37 or GRCh38, if a custom reference is used and a custom_dbSNP is not provided base recalibration will not be performed. (default: NO_FILE)
 
       --paired <true | false>                 Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
                                               If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
@@ -33,8 +35,6 @@ def helpMessage() {
       --skip_variant_calling <true | false>   Skips variant calling process entirely, only perform the alignment (default: true)
       --remove_duplicates <true | false>      Remove marked as duplicated reads. Options: true, false (default: false)
       --min_alt_fraction [NUM]                Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
-      --indir [DIR]                           The input directory, all fastq files or csv files in this directory will be processed. (default: "data")
-      --outdir [DIR]                          The output directory where the results will be saved (default: "my-results")
       
 
     """.stripIndent()
@@ -48,10 +48,10 @@ if (params.help){
 
 if(params.paired){
 
-  //Reads must be read twice, both as a trupple and as an array
+  //Reads must be read twice, both as a tupple and as an array
    Channel
       .fromFilePairs(params.reads, size: 2,  checkIfExists: true, flat:true)
-      .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
+      .take( params.dev ? params.number_of_inputs : -1 )
       .into{ [ch_pre_samples, ch_FlowCell_lane] }
 
 
@@ -67,7 +67,7 @@ if(params.paired){
       .fromPath(params.reads, checkIfExists: true)
       .splitCsv(header:true)
       .map{ row-> [row.sampleId, [row.read]] }
-      .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
+      .take( params.dev ? params.number_of_inputs : -1 )
       .ifEmpty {error "File ${params.reads} not parsed properly"}
       .into{ [ch_samples, ch_sampleName, ch_FlowCell_lane] }
 
@@ -77,9 +77,7 @@ if(params.paired){
 //Fuse Ids and samples to manage SampleId as a tuple together with the samples they identify.
 ch_RG_ID.concat(ch_samples_with_id).groupTuple().map{ it -> [[it[0],it[1][0]],it[1][1]] }.set{ ch_samples }
 
-
 ch_dbSNP = file(params.dbSNP)
-ch_adapter = file(params.adapter_trimm)
 
 def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
 def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
@@ -107,7 +105,8 @@ results              : $params.outdir
 ===============================================================
 """
 
-//------------------------------------------------------------Trimming-------------------------------------------------
+//------------------------------------------------------------Genome Reference Handling-------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------------------------
 
 if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
@@ -154,10 +153,9 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     """
     
   }
-  // coppy custom reference into a /reference directory were all custom references are stored.
-  custom_reference = file("$params.genome")    
-  custom_reference.copyTo("$params.indir/reference/")
+
   // Extract file name:
+  custom_reference = file("$params.genome")
   prefixRef = custom_reference.name.take(custom_reference.name.lastIndexOf('.'))
 
   process Custom_genome_indexing {
@@ -189,6 +187,10 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
   }
 }
 
+//------------------------------------------------------------Trimming-----------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------------
+
+def adapter_trimm = params.adapter_file != 'NO_FILE' ? "ILLUMINACLIP:${params.adapter_file}:2:30:10" : ''
 
 process FASTQ_Trimming {
 
@@ -199,17 +201,12 @@ process FASTQ_Trimming {
 
    input:
    set sampleId, file(samples) from ch_samples
-   file adapter from ch_adapter
 
    output:
    set sampleId, file('*.fastq.gz') into ch_alignment
 
    script:
-   //Makes filtering with an adapter an option without using an annoying amount of different conditionals and scripts.
-   def adapter_trimm = adapter.name != 'NO_FILE' ? "ILLUMINACLIP:$adapter:2:30:10" : ''
 
-   //WARNING: Trimmomatic does not mind if the adapter file is not found
-   //it will continue without processing it and without a warning.
    if(params.paired){
       // def adapter_trimm does not work with template command.
       //template 'trimmomatic/trimmomatic_PE_adapter_test'
@@ -340,6 +337,7 @@ process BAM_sorting{
   """
   }
 
+//------------------------------------------------------------------------------------------------------------------------
 //---------------------------------------------------Mark Duplicates or not-----------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -365,9 +363,6 @@ if(params.remove_duplicates){
      output:
      set sampleId, file('*.bam') into ch_index_bam
 
-     //when:
-     //params.remove_duplicates
-
      script:
 
      """
@@ -382,7 +377,7 @@ process BAM_file_indexing{
   tag "Indexing BAM file"
   label 'med_mem'
 
-  publishDir "$params.outdir/alignment", mode: 'copy'
+  publishDir "$params.outdir/alignment"
 
   input:
   set sampleId, file(bam_file) from ch_index_bam
@@ -398,12 +393,9 @@ process BAM_file_indexing{
 
   }
 
-//---------------------------------------------------Recalibration-----------------------------------------------
-//---------------------------------------------------------------------------------------------------------------
-/* Is this still relevant?
-(ch_gather_bams) = ( params.dbSNP == 'NO_FILE'
-                    ? [ ch_bamFilesForBaseRecalibration ]
-                    : [ Channel.empty() ] )*/
+//------------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------Recalibration--------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------
 
 // Telling nextflow seqRef is a path to a file.
 def seqRef = file(params.seqRef)
@@ -453,6 +445,24 @@ if(params.dbSNP != 'NO_FILE'){
     }  
 }else{ch_bamFilesForBaseRecalibration.set{ch_variant_calling}}
 
+//------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------Variant Calling--------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------
+/*
+process basic_coverage_stats {
+  tag "Obtain basic coverage statistics"
+  publishDir "$params.outdir/alignment", mode: 'copy'
+
+  input:
+    set sampleId, file(bam), file(bai) from ch_covstats
+  output:
+    set sampleId, file("${bam[0]}"), file("${bai[0]}") into ch_variant_calling
+
+  script:
+  """
+  Covstats ${bam[0]} ${sampleId} >> coverage_stats.txt
+  """
+}*/
 
 if(params.skip_variant_calling){}else{
 
@@ -461,7 +471,7 @@ def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt
   process Variant_Calling_single {
     tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
     label 'med_mem'
-    //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+    publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
     input:
       set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
