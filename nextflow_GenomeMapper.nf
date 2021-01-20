@@ -1,8 +1,5 @@
 #!/usr/bin/env nextflow
 
-//TODO:
-//Provide an error if adapter filtering was usuccessful
-
 def helpMessage() {
     log.info"""
 
@@ -50,7 +47,7 @@ if(params.paired){
 
   //Reads must be read twice, both as a trupple and as an array
    Channel
-      .fromFilePairs(params.reads, size: 2,  checkIfExists: true, flat:true)
+      .fromFilePairs(params.reads, size: 2,checkIfExists: true, flat:true)
       .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
       .into{ [ch_pre_samples, ch_FlowCell_lane] }
 
@@ -79,7 +76,6 @@ ch_RG_ID.concat(ch_samples_with_id).groupTuple().map{ it -> [[it[0],it[1][0]],it
 
 
 ch_dbSNP = file(params.dbSNP)
-ch_adapter = file(params.adapter_trimm)
 
 def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
 def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
@@ -189,6 +185,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
   }
 }
 
+def adapter_trimm = params.adapter_file != 'NO_FILE' ? "ILLUMINACLIP:${params.adapter_file}:2:30:10" : ''
 
 process FASTQ_Trimming {
 
@@ -199,25 +196,19 @@ process FASTQ_Trimming {
 
    input:
    set sampleId, file(samples) from ch_samples
-   file adapter from ch_adapter
 
    output:
    set sampleId, file('*.fastq.gz') into ch_alignment
 
    script:
-   //Makes filtering with an adapter an option without using an annoying amount of different conditionals and scripts.
-   def adapter_trimm = adapter.name != 'NO_FILE' ? "ILLUMINACLIP:$adapter:2:30:10" : ''
 
    //WARNING: Trimmomatic does not mind if the adapter file is not found
    //it will continue without processing it and without a warning.
    if(params.paired){
-      // def adapter_trimm does not work with template command.
-      //template 'trimmomatic/trimmomatic_PE_adapter_test'
 
       """
       trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
-    //  }
    }
    else{
 
