@@ -140,7 +140,7 @@ OSVersion: xenial
    exec trimmomatic "$@"
 
 %appinstall trimmomatic
-   apt-get -y install trimmomatic
+   apt-get install trimmomatic
 
 %apphelp trimmomatic
    exec man trimmomatic
@@ -154,6 +154,7 @@ OSVersion: xenial
 	git clone https://github.com/samtools/htslib
     
 		cd htslib
+	git submodule update --init --recursive
 		autoheader
 		autoconf
 		./configure
@@ -210,9 +211,9 @@ OSVersion: xenial
    exec bowtie2 "$@"
 
 %appinstall bowtie2
-     wget https://github.com/BenLangmead/bowtie2/releases/download/v2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip
+      wget https://github.com/BenLangmead/bowtie2/releases/download/v2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip
       unzip bowtie2-2.3.5.1-linux-x86_64.zip
-	  cp bowtie2-2.3.5.1-linux-x86_64/bowtie2* /usr/local/bin/
+      cp bowtie2-2.3.5.1-linux-x86_64/bowtie2* /usr/local/bin/
  
 %apphelp bowtie2
    Bowtie 2 v. 2.3.5.1 . http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
@@ -224,10 +225,10 @@ OSVersion: xenial
 
 %appinstall varscan
     wget https://github.com/dkoboldt/varscan/raw/master/VarScan.v2.4.4.jar
-	  mv VarScan.v2.4.4.jar /usr/local/bin/
-	  echo "#"'!'"/bin/bash" > /usr/local/bin/varscan
-	  echo "java -jar /usr/local/bin/VarScan.v2.4.4.jar \"\$@\"" >> /usr/local/bin/varscan
-	  chmod +x /usr/local/bin/varscan
+    mv VarScan.v2.4.4.jar /usr/local/bin/
+    echo "#"'!'"/bin/bash" > /usr/local/bin/varscan
+    echo "java -jar /usr/local/bin/VarScan.v2.4.4.jar \"\$@\"" >> /usr/local/bin/varscan
+    chmod +x /usr/local/bin/varscan
    
 
 %apphelp varscan
@@ -248,13 +249,12 @@ OSVersion: xenial
 # ####################### FreeBayes #################################
 %apprun freebayes
 	exec freebayes "$@"
+
 %appinstall freebayes
 	  wget https://github.com/ekg/freebayes/releases/download/v1.3.1/freebayes-v1.3.1
 	  mv freebayes-v1.3.1 freebayes
 	  chmod og+x freebayes
 	  cp freebayes /usr/local/bin/
-    
-	
 	
 %apphelp freebayes
 	freebayes . https://github.com/ekg/freebayes
@@ -280,6 +280,6 @@ OSVersion: xenial
 %labels
 	Author Fernández-Val
 	Co-author Fernández-Peñalver-Sergio
-	Version v2.0
+	Version v3.0
 
 
