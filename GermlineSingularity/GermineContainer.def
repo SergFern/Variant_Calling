@@ -14,6 +14,8 @@ From: ubuntu:16.04
 	wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz
 	tar xvfz /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
 
+    mkdir /data-store
+
 # ######################### FastQC #######################
 %apprun fastqc
  exec fastqc "$@"
