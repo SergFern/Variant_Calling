@@ -396,7 +396,8 @@ process BAM_file_indexing{
                     ? [ ch_bamFilesForBaseRecalibration ]
                     : [ Channel.empty() ] )*/
 
-
+// Telling nextflow seqRef is a path to a file.
+def seqRef = file(params.seqRef)
 
 if(params.dbSNP != 'NO_FILE'){
 
@@ -437,10 +438,9 @@ if(params.dbSNP != 'NO_FILE'){
     script:
       """
       gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bam
-      mv ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bai ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bam.bai
 
       """
-
+//mv ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bai ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bam.bai
     }  
 }else{ch_bamFilesForBaseRecalibration.set{ch_variant_calling}}
 
@@ -463,16 +463,16 @@ if(params.skip_variant_calling){}else{
       if(params.vc == 'gatk'){
 
       """
-      gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId[0]}.${params.vc}.vcf -R ${reference} ${params.vcOpts}
+      gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId[0]}.${params.vc}.vcf -R ${seqRef} ${params.vcOpts}
       """
       }else if(params.vc == 'freebayes'){
 
       """
-      freebayes --min-alternate-fraction ${params.min_alt_fraction} -f ${reference} ${bam_file[0]} > ${sampleId[0]}.${params.vc}.vcf
+      freebayes --min-alternate-fraction ${params.min_alt_fraction} -f ${seqRef} ${bam_file[0]} > ${sampleId[0]}.${params.vc}.vcf
       """
       }else if(params.vc == 'varscan'){
       """
-      samtools mpileup -B -f ${reference} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
+      samtools mpileup -B -f ${seqRef} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
       
       """
       }
@@ -495,8 +495,4 @@ if(params.skip_variant_calling){}else{
     """
   }
 }
- //skiping main conditional key
 
-/*
- * result.view { it.trim() }
- */
