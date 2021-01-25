@@ -110,7 +110,7 @@ process Sorting_Variants {
 
 process MergeVcfs {
   tag "Merges both snp and indel vcfs, filtered and sorted"
-  publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+  publishDir "$params.outdir/curated_variant_calling_files", mode: 'copy'
   label	"vfiltering"
 
   input:
