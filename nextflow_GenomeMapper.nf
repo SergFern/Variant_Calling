@@ -1,8 +1,5 @@
 #!/usr/bin/env nextflow
 
-//TODO:
-//Provide an error if adapter filtering was usuccessful
-
 def helpMessage() {
     log.info"""
 
@@ -15,6 +12,7 @@ def helpMessage() {
     ./nextflow_GenomeMapper.nf [OPTIONS]
 
     Options:
+
       --indir [DIR]                           The input directory, all fastq files or csv files in this directory will be processed. (default: "data")
       --outdir [DIR]                          The output directory where the results will be saved (default: "my-results")
       --genome <GRCh37 | GRCh38 | [FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
@@ -35,7 +33,6 @@ def helpMessage() {
       --skip_variant_calling <true | false>   Skips variant calling process entirely, only perform the alignment (default: true)
       --remove_duplicates <true | false>      Remove marked as duplicated reads. Options: true, false (default: false)
       --min_alt_fraction [NUM]                Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
-      
 
     """.stripIndent()
 }
@@ -50,8 +47,8 @@ if(params.paired){
 
   //Reads must be read twice, both as a tupple and as an array
    Channel
-      .fromFilePairs(params.reads, size: 2,  checkIfExists: true, flat:true)
-      .take( params.dev ? params.number_of_inputs : -1 )
+      .fromFilePairs(params.reads, size: 2, checkIfExists: true, flat:true)
+      .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
       .into{ [ch_pre_samples, ch_FlowCell_lane] }
 
 
@@ -116,7 +113,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
   process Indexing_custom_genome {
     tag "Indexes supplied reference FASTA file (Samtools)"
-    label 'med_mem'
+    label 'big_mem'
 
     publishDir "data/custom_reference", mode: 'copy'
 
@@ -136,7 +133,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
    process Building_genome_dictionary {
     tag "Creating Dictionary file (GATK)"
-    label 'med_mem'
+    label 'big_mem'
 
     publishDir "data/custom_reference", mode: 'copy'
 
@@ -160,7 +157,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
   process Custom_genome_indexing {
     tag "Indexes reference file using the specified aligner"
-    label 'med_mem'
+    label 'big_mem'
 
     publishDir "data/custom_reference", mode: 'copy'
 
@@ -195,7 +192,7 @@ def adapter_trimm = params.adapter_file != 'NO_FILE' ? "ILLUMINACLIP:${params.ad
 process FASTQ_Trimming {
 
   tag "Quality checks and trimms reads using a trimmomatic"
-  label 'med_mem'
+  label 'big_mem'
 
   publishDir "$params.outdir/trimmed_data"
 
@@ -208,13 +205,10 @@ process FASTQ_Trimming {
    script:
 
    if(params.paired){
-      // def adapter_trimm does not work with template command.
-      //template 'trimmomatic/trimmomatic_PE_adapter_test'
 
       """
       trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
-    //  }
    }
    else{
 
@@ -233,7 +227,7 @@ def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${par
 process Alignment {
 
   tag "Aligns reads to a reference genome using bwa or bowtie2"
-  label 'med_mem'
+  label 'big_mem'
    
   publishDir "$params.outdir/alignment"
 
@@ -299,7 +293,7 @@ process Alignment {
 process SAM_to_BAM{
 
   tag "Converts SAM file to BAM file using samtools view"
-  label 'med_mem'
+  label 'big_mem'
 
   publishDir "$params.outdir/alignment"
 
@@ -319,7 +313,7 @@ process SAM_to_BAM{
 process BAM_sorting{
 
   tag "Sorts BAM file using Samtools"
-  label 'med_mem'
+  label 'big_mem'
 
   publishDir "$params.outdir/alignment", mode: 'copy'
 
@@ -353,7 +347,7 @@ if(params.remove_duplicates){
 
   process Remove_duplicates{
     tag "Remove duplicates if 'remove_duplicates' is true using MarkDuplicates"
-    label 'med_mem'
+    label 'big_mem'
 
     publishDir "$params.outdir/alignment"
 
@@ -375,7 +369,7 @@ if(params.remove_duplicates){
 process BAM_file_indexing{
 
   tag "Indexing BAM file"
-  label 'med_mem'
+  label 'big_mem'
 
   publishDir "$params.outdir/alignment"
 
@@ -397,6 +391,7 @@ process BAM_file_indexing{
 //---------------------------------------------------Recalibration--------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------
 
+
 // Telling nextflow seqRef is a path to a file.
 def seqRef = file(params.seqRef)
 
@@ -404,7 +399,7 @@ if(params.dbSNP != 'NO_FILE'){
 
   process BaseRecalibrator {
     tag "Calculate Base recalibration table"
-    label 'med_mem'
+    label 'big_mem'
 
     publishDir "$params.outdir/alignment"
     
@@ -424,7 +419,7 @@ if(params.dbSNP != 'NO_FILE'){
 
   process ApplyBQSR {
     tag "Apply previously recalibrated table"
-    label 'med_mem'
+    label 'big_mem'
     publishDir "$params.outdir/alignment", mode: 'copy'
 
     input:
@@ -438,10 +433,10 @@ if(params.dbSNP != 'NO_FILE'){
     
     script:
       """
-      gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}.sort${rmdups}.bqsr.bam
+      gatk ApplyBQSR --bqsr-recal-file ${bqsr[0]} -I ${bam[0]} ${region_interval} -O ${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bam
 
       """
-
+//mv ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bai ${params.outdir}/alignment/${sampleId[0]}.${params.aln}${rmdups}.sort.bqsr.bam.bai
     }  
 }else{ch_bamFilesForBaseRecalibration.set{ch_variant_calling}}
 
@@ -470,8 +465,8 @@ def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt
 
   process Variant_Calling_single {
     tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
-    label 'med_mem'
-    publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+    label 'big_mem'
+    //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
     input:
       set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
@@ -500,7 +495,7 @@ def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt
 
   process VCF_indexing {
     tag "Indexes vcf files generated by Variant_Calling"
-    label 'med_mem'
+    label 'big_mem'
 
     publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
@@ -515,8 +510,4 @@ def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt
     """
   }
 }
- //skiping main conditional key
 
-/*
- * result.view { it.trim() }
- */

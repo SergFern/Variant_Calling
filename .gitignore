@@ -8,6 +8,11 @@ nexflow_trials.nf
 *fasta
 nextflow_trials*
 cleanup.sh
+<<<<<<< HEAD
 *.vcf
 logs/*.html
 results
+=======
+slurm*
+*test*
+>>>>>>> cluster
