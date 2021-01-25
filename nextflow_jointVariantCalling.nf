@@ -52,14 +52,9 @@ remove_duplicates    : $params.remove_duplicates
 
 min_alt_fraction     : $params.min_alt_fraction
 
-<<<<<<< HEAD
 read_directory       : ./$params.indir
 vcf_directory        : ./$params.outdir/alignment
 results              : ./$params.outdir/raw_variant_calling_files
-=======
-read_directory       : ./$params.outdir/alignment
-results              : ./$params.outdir
->>>>>>> cluster
 ===============================================================
 """
 
