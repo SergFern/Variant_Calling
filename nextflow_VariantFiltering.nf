@@ -13,10 +13,11 @@ def helpMessage() {
     nextflow run [OPTIONS]
     Options:
       
-      --indir                          The input directory, all vcf files in this directory will be processed. (default: $params.outdir/raw_variant_calling)
-      --outdir                         The output directory where the results will be saved (default: $params.outdir)
+      --genome <GRCh37 | GRCh38 | [FILE]>  Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
+      --region_intervals [BED FILE]        Complete path to specific genomic region in .list format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --VCF_files                          The input directory, all vcf files in this directory will be processed. (default: $params.outdir/raw_variant_calling)
+      --outdir                             The output directory where the results will be saved (default: $params.outdir)
       
-
     """.stripIndent()
 }
 
@@ -31,8 +32,12 @@ log.info """\
 ================================================================
 V A R I A N T  C A L L E R  - I R Y C I S    v 1.1-Fixing Sample Names
 ================================================================
-read_directory       : ./$params.VCF_files
-results              : ./$params.outdir/curated_variant_calling_files
+genome          : $params.genome
+region_intervals: $params.region_intervals
+
+VCF_files       : $params.VCF_files
+outdir          : $params.outdir
+final-results   : $params.outdir/curated_variant_calling_files
 ================================================================
 """
 
