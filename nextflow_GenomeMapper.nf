@@ -16,7 +16,7 @@ def helpMessage() {
       --indir [DIR]                           The input directory, all fastq files or csv files in this directory will be processed. (default: "data")
       --outdir [DIR]                          The output directory where the results will be saved (default: "my-results")
       --genome <GRCh37 | GRCh38 | [FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
-      --adapter_file [FILE]                   Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
+      --adapters [FILE]                       Adapter file to trimm reads by. (Trimmomatic adapters provided in $baseDir/adapter)
       --region_intervals [BED FILE]           Complete path to specific genomic region in .list format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
       --dbSNP [FILE]                          Automatically provided when selecting GRCh37 or GRCh38, if a custom reference is used and a custom_dbSNP is not provided base recalibration will not be performed. (default: NO_FILE)
 
@@ -86,7 +86,7 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
 ================================================================
 genome               : $params.genome
 reads                : $params.reads
-adapters             : $params.adapter_file
+adapters             : $params.adapters
 
 region_intervals     : $params.region_intervals
 dbSNP                : ${params.dbSNP}
@@ -187,7 +187,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 //------------------------------------------------------------Trimming-----------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------
 
-def adapter_trimm = params.adapter_file != 'NO_FILE' ? "ILLUMINACLIP:${params.adapter_file}:2:30:10" : ''
+def adapter_trimm = params.adapters != 'NO_FILE' ? "ILLUMINACLIP:${params.adapters}:2:30:10" : ''
 
 process FASTQ_Trimming {
 
@@ -221,8 +221,8 @@ process FASTQ_Trimming {
 //------------------------------------------------------------Alignment----------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------------
 
-def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/data/custom_reference/${prefixRef}.fasta": file("${params.indexRef}")
-def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/data/custom_reference/${prefixRef}.bowtie2": "${params.indexRef}"
+def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/../data/custom_reference/${prefixRef}.fasta": file("${params.indexRef}")
+def bowtie2ref = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/../data/custom_reference/${prefixRef}.bowtie2": "${params.indexRef}"
   
 process Alignment {
 
