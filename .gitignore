@@ -13,3 +13,4 @@ logs/*.html
 results
 slurm*
 *test*
+hs_err*
