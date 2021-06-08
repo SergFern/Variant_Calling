@@ -77,7 +77,7 @@ ch_RG_ID.concat(ch_samples_with_id).groupTuple().map{ it -> [[it[0],it[1][0]],it
 ch_dbSNP = file(params.dbSNP)
 
 def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
-def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
+def ploidy = params.ploidy != 'n' || params.ploidy == 'y' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
 
 log.info """\
 
