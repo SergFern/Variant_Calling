@@ -115,7 +115,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     tag "Indexes supplied reference FASTA file (Samtools)"
     label 'big_mem'
 
-    publishDir "$params.indir/custom_reference", mode: 'copy'
+    publishDir "$params.indir/custom_reference"
 
 
     input:
@@ -135,7 +135,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     tag "Creating Dictionary file (GATK)"
     label 'big_mem'
 
-    publishDir "$params.indir/custom_reference", mode: 'copy'
+    publishDir "$params.indir/custom_reference"
 
     input:
     file reference_file from ch_reference
@@ -254,9 +254,9 @@ process Alignment {
       RG = " --rg-id ${sampleId[1]} --rg SM:${sampleId[0]} --rg PL:${params.platform}"
 
       """
-      bowtie2 -p ${params.threads} -x ${bowtie2ref} -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId[0]}.bowtie2.sam ${RG} ${params.mappingOptions}
+      bowtie2 -p ${params.threads} --very-sensitive -x ${bowtie2ref} -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId[0]}.bowtie2.sam ${RG}
       """
-      }else if(params.aln == 'novoalign'){
+    }else if(params.aln == 'novoalign'){
 
       """
       novoalign --version
@@ -315,7 +315,7 @@ process BAM_sorting{
   tag "Sorts BAM file using Samtools"
   label 'big_mem'
 
-  publishDir "$params.outdir/alignment", mode: 'copy'
+  publishDir "$params.outdir/alignment"
 
   input:
   set sampleId, file(bam_file) from ch_bam_sorting
@@ -373,7 +373,7 @@ process BAM_file_indexing{
   tag "Indexing BAM file"
   label 'big_mem'
 
-  publishDir "$params.outdir/alignment", mode: 'copy'
+  publishDir "$params.outdir/alignment"
 
   input:
   set sampleId, file(bam_file) from ch_index_bam
@@ -424,7 +424,7 @@ if(params.dbSNP != 'NO_FILE'){
   process ApplyBQSR {
     tag "Apply previously recalibrated table"
     label 'big_mem'
-    publishDir "$params.outdir/alignment", mode: 'copy'
+    publishDir "$params.outdir/alignment"
 
     input:
       set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
