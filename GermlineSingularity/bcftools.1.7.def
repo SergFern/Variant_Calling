@@ -15,7 +15,7 @@ OSVersion: xenial
 	exec bcftools "$@"
 
 %appinstall bcftools
-	apt-get install bcftools
+	apt-get -y install bcftools
 
 %apphelp bcftools
 	bcftools http://samtools.github.io/bcftools/bcftools.html
