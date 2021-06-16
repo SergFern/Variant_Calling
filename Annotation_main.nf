@@ -13,7 +13,7 @@ outdir                  : $params.outdir
 ================================================================
 """
 
-include { VCF_Normalization; VCF_Decomposition } from './modules/Annotation.nf'
+include { VCF_Normalization; VCF_Decomposition; Annotation } from './modules/Annotation.nf'
 
 
 workflow {
@@ -22,15 +22,14 @@ workflow {
 
     VCF_Normalization(data)
     VCF_Decomposition(VCF_Normalization.out)
+    //Annotation(VCF_Decomposition.out)
 
 }
 
 /* COMMENT SECTION
-TODO: bcftools as container
+TODO: use container bcftools
 TODO: integrated workflow
-TODO: SampleId to identify different files - check GenomeMapper processes
 TODO: define snpEff process as module
-TODO: decide - different modules for bcftools and snpeff or integration?
 TODO: investigate - specific config file
 TODO: separate profiles configuration from general .config file
 */

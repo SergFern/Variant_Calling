@@ -4,30 +4,48 @@ nextflow.enable.dsl=2
 
 process VCF_Normalization {
     publishDir = "results"
+    label 'bcftools'
 
     input:
-        path data
+        path vcf
     output:
-        file('*.vcf')
+        file('*')
     script:
         """
-        bcftools norm -m-both -o ${data.baseName}.norm.vcf $data
+        bcftools norm -m-both -o ${vcf.baseName}.norm.vcf $vcf
         """
 }
 
 process VCF_Decomposition {
     publishDir = "results"
+    label 'bcftools'
 
     input:
-        path data
+        path vcf
     output:
         file('*.vcf')
     script:
         """
-        bcftools norm -f $params.seqRef -o ${data.baseName}.decomp.vcf $data
+        bcftools norm -f $params.seqRef -o ${vcf.baseName}.decomp.vcf $vcf
         """
 }
 
-/* COMMENT SECTION
+process Annotation {
+    publishDir = "results"
+
+    input:
+        path vcf
+    output:
+        file('*.vcf')
+    script:
+        """
+        snpEff -v -dataDir $params.snpEffdb GRCh37.75 $vcf > ${vcf.baseName}.annot.vcf
+        """
+
+}
+
+/* 
+
+COMMENT SECTION
 
 */
