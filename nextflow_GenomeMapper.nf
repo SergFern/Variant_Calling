@@ -4,7 +4,7 @@ def helpMessage() {
     log.info"""
 
 	================================================================
-	V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
+	V A R I A N T  C A L L E R  - I R Y C I S    v 1.3
 	================================================================
 
     Usage:
@@ -43,6 +43,31 @@ if (params.help){
   exit 0
 }
 
+log.info """\
+
+================================================================
+V A R I A N T  C A L L E R  - I R Y C I S    v 1.3
+================================================================
+genome               : $params.genome
+reads                : $params.reads
+adapters             : $params.adapter_file
+
+region_intervals     : $params.region_intervals
+skip variant calling : $params.skip_variant_calling
+dbSNP                : $params.dbSNP
+
+
+paired               : $params.paired
+aligner              : $params.aln
+variant_caller       : $params.vc
+remove_duplicates    : $params.remove_duplicates
+ploidy               : $params.ploidy
+
+read_directory       : $params.indir
+results              : $params.outdir
+===============================================================
+"""
+
 if(params.paired){
 
   //Reads must be read twice, both as a tupple and as an array
@@ -74,36 +99,13 @@ if(params.paired){
 //Fuse Ids and samples to manage SampleId as a tuple together with the samples they identify.
 ch_RG_ID.concat(ch_samples_with_id).groupTuple().map{ it -> [[it[0],it[1][0]],it[1][1]] }.set{ ch_samples }
 
-ch_dbSNP = file(params.dbSNP)
+def dbSNP = params.dbSNP == false ? "NO_FILE" : params.dbSNP
+ch_dbSNP = file(dbSNP)
 
 def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
 def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
 
-log.info """\
-
-================================================================
-V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
-================================================================
-genome               : $params.genome
-reads                : $params.reads
-adapters             : $params.adapters
-
-region_intervals     : $params.region_intervals
-dbSNP                : ${params.dbSNP}
-
-paired               : $params.paired
-aligner              : $params.aln
-variant_caller       : $params.vc
-remove_duplicates    : $params.remove_duplicates
-ploidy               : $params.ploidy
-
-read_directory       : $params.indir
-results              : $params.outdir
-===============================================================
-"""
-
-//------------------------------------------------------------Genome Reference Handling-------------------------------------------------
-//--------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------Custom Genome-------------------------------------------------
 
 if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
@@ -115,7 +117,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     tag "Indexes supplied reference FASTA file (Samtools)"
     label 'big_mem'
 
-    publishDir "data/custom_reference", mode: 'copy'
+    publishDir "$params.indir/custom_reference"
 
 
     input:
@@ -135,7 +137,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
     tag "Creating Dictionary file (GATK)"
     label 'big_mem'
 
-    publishDir "data/custom_reference", mode: 'copy'
+    publishDir "$params.indir/custom_reference"
 
     input:
     file reference_file from ch_reference
@@ -254,9 +256,9 @@ process Alignment {
       RG = " --rg-id ${sampleId[1]} --rg SM:${sampleId[0]} --rg PL:${params.platform}"
 
       """
-      bowtie2 -p ${params.threads} -x ${bowtie2ref} -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId[0]}.bowtie2.sam ${RG} ${params.mappingOptions}
+      bowtie2 -p ${params.threads} --very-sensitive -x ${bowtie2ref} -1 ${fastq_file[0]} -2 ${fastq_file[1]} -S ${sampleId[0]}.bowtie2.sam ${RG}
       """
-      }else if(params.aln == 'novoalign'){
+    }else if(params.aln == 'novoalign'){
 
       """
       novoalign --version
@@ -315,7 +317,7 @@ process BAM_sorting{
   tag "Sorts BAM file using Samtools"
   label 'big_mem'
 
-  publishDir "$params.outdir/alignment", mode: 'copy'
+  publishDir "$params.outdir/alignment"
 
   input:
   set sampleId, file(bam_file) from ch_bam_sorting
@@ -420,7 +422,7 @@ if(params.dbSNP != 'NO_FILE'){
   process ApplyBQSR {
     tag "Apply previously recalibrated table"
     label 'big_mem'
-    publishDir "$params.outdir/alignment", mode: 'copy'
+    publishDir "$params.outdir/alignment"
 
     input:
       set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
