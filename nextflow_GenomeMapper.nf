@@ -4,7 +4,7 @@ def helpMessage() {
     log.info"""
 
 	================================================================
-	V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
+	V A R I A N T  C A L L E R  - I R Y C I S    v 1.3
 	================================================================
 
 
@@ -43,6 +43,31 @@ if (params.help){
   exit 0
 }
 
+log.info """\
+
+================================================================
+V A R I A N T  C A L L E R  - I R Y C I S    v 1.3
+================================================================
+genome               : $params.genome
+reads                : $params.reads
+adapters             : $params.adapter_file
+
+region_intervals     : $params.region_intervals
+skip variant calling : $params.skip_variant_calling
+dbSNP                : $params.dbSNP
+
+
+paired               : $params.paired
+aligner              : $params.aln
+variant_caller       : $params.vc
+remove_duplicates    : $params.remove_duplicates
+ploidy               : $params.ploidy
+
+read_directory       : $params.indir
+results              : $params.outdir
+===============================================================
+"""
+
 if(params.paired){
 
   //Reads must be read twice, both as a trupple and as an array
@@ -74,34 +99,11 @@ if(params.paired){
 //Fuse Ids and samples to manage SampleId as a tuple together with the samples they identify.
 ch_RG_ID.concat(ch_samples_with_id).groupTuple().map{ it -> [[it[0],it[1][0]],it[1][1]] }.set{ ch_samples }
 
-
-ch_dbSNP = file(params.dbSNP)
+def dbSNP = params.dbSNP == false ? "NO_FILE" : params.dbSNP
+ch_dbSNP = file(dbSNP)
 
 def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
 def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
-
-log.info """\
-
-================================================================
-V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
-================================================================
-genome               : $params.genome
-reads                : $params.reads
-adapters             : $params.adapter_file
-
-region_intervals     : $params.region_intervals
-dbSNP                : ${params.dbSNP}
-
-paired               : $params.paired
-aligner              : $params.aln
-variant_caller       : $params.vc
-remove_duplicates    : $params.remove_duplicates
-ploidy               : $params.ploidy
-
-read_directory       : $params.indir
-results              : $params.outdir
-===============================================================
-"""
 
 //------------------------------------------------------------Trimming-------------------------------------------------
 
