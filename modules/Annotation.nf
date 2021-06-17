@@ -32,6 +32,7 @@ process VCF_Decomposition {
 
 process Annotation {
     publishDir = "results"
+    label 'snpEffect'
 
     input:
         path vcf
@@ -39,13 +40,7 @@ process Annotation {
         file('*.vcf')
     script:
         """
-        snpEff -v -dataDir $params.snpEffdb GRCh37.75 $vcf > ${vcf.baseName}.annot.vcf
+        snpEff -v -dataDir $params.snpEffdb $params.genome_annot $vcf > ${vcf.baseName}.annot.vcf
         """
 
 }
-
-/* 
-
-COMMENT SECTION
-
-*/
