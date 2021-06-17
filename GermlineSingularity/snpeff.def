@@ -1,0 +1,50 @@
+BootStrap: docker
+From: ubuntu:16.04
+OSVersion: xenial
+
+%post
+
+    apt-get -y update
+    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre r-base-core pkg-config libcurl4-openssl-dev libxml2-dev
+
+    mkdir /data_store
+
+# ######################### snpEff #####################
+
+%apprun snpEff
+	exec snpEff "$@"
+
+%appinstall snpEff
+	cd ~
+	wget https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip
+	unzip snpEff_latest_core.zip
+
+	echo "#"'!'"/bin/bash" > /usr/local/bin/snpEff
+	echo "#"'!'"/bin/bash" > /usr/local/bin/snpSift
+
+	echo "java -Xmx4G -jar ~/snpEff/snpEff.jar \"\$@\"" >> /usr/local/bin/snpEff
+	echo "java -Xmx4G -jar ~/snpEff/SnpSift.jar \"\$@\"" >> /usr/local/bin/snpSift
+
+	chmod +x /usr/local/bin/*
+
+
+%apphelp snpEff
+	snpEff https://pcingola.github.io/SnpEff/se_commandline/
+
+# ######################### snpSift #####################
+
+%apprun snpSift
+	exec snpSift "$@"
+
+%apphelp snpSift
+	snpSift https://pcingola.github.io/SnpEff/se_commandline/
+
+##############################################################################
+
+
+%labels
+
+	Author Fernández-Peñalver-Sergio
+	Version v1.0
+
+

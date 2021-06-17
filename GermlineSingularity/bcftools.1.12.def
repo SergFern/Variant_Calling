@@ -32,6 +32,6 @@ OSVersion: xenial
 %labels
 
 	Author Fernández-Peñalver-Sergio
-	Version v0.1
+	Version v1.0
 
 
