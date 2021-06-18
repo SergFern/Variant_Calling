@@ -1,5 +1,7 @@
 #!/usr/bin/env nextflow
 
+// Remove single_mode Variant_calling
+
 def helpMessage() {
     log.info"""
 ================================================================
@@ -8,23 +10,24 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 1.2
 
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run [OPTIONS]
+    ./nextflow_jointVariantCalling.nf [OPTIONS]
+
+
     Options:
-      --genome <GRCh37 | GRCh38 | [FILE]>  Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
-      --dbSNP [FILE]                   Automatically provided when selecting GRCh37 or GRCh38, if using a custom reference and not provided base recalibration will not be performed.
 
-      --paired <true | false>                        Execute pipleine in single-end or paired-end mode. If "--paired true" then all fastq files in $params.indir will be processed as samples from the same experiment.
-                                       If "--paired false" a csv with the single-end files path and their IDs will be used to identify the fasq files. Options: true, false (default: true)
-      --vc <freebayes>                 Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default:gatk)
-      --GVCFmode <true | false>                       This flag indicates all samples provided come from the same experiment and thus should be called together. Right now only compatible with freebayes. (default: true)
-      --common_id [STRING]             Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
+      --genome <GRCh37 | GRCh38 | [FILE]>   Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
+      --region_intervals [BED FILE]         Specific genomic region in bed format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --dbSNP [FILE]                        Automatically provided when selecting GRCh37 or GRCh38, if using a custom reference and not provided base recalibration will not be performed.
 
-      --min_alt_fraction <float>               Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
+      --vc <freebayes | gatk | varscan>     Variant caller to use for variant calling. Options: gatk, freebayes, varscan (default: freebayes)
+      --GVCFmode <true | false>             This flag indicates all samples provided come from the same experiment and thus should be called together. As of Oct-2020 only compatible with freebayes. (default: true)
+      --common_id [STRING]                  Id by which to identify all samples as coming from the same experiment. Assumed to be leading the file name. (default: first two characters of file name are used as experiment identifier)
 
-      --remove_duplicates <true | false>              Remove marked as duplicated reads. Options: true, false (default: false)
-      --indir [DIR]                    The input directory, all fastq files or csv files in this directory will be processed. (default: "$baseDir/$params.outdir/alignment")
-      --outdir [DIR]                   The output directory where the results will be saved (default: "$baseDir/$params.outdir/raw_variant_calling_files")
-      
+      --min_alt_fraction                    Freebayes specific option, minimumn threshold at which allele frequency is considered real. (default: 0.2)
+
+      --remove_duplicates <true | false>    Remove marked as duplicated reads. Options: true, false (default: false)
+      --indir [DIR]                         The input directory, all .bam files in this directory will be processed. (default: "$baseDir/$params.outdir/alignment")
+      --outdir [DIR]                        The output directory where the results will be saved (default: "$baseDir/$params.outdir")     
 
     """.stripIndent()
 }
@@ -49,8 +52,9 @@ remove_duplicates    : $params.remove_duplicates
 
 min_alt_fraction     : $params.min_alt_fraction
 
-read_directory       : ./$params.outdir/alignment
-results              : ./$params.outdir
+read_directory       : ./$params.indir
+vcf_directory        : ./$params.outdir/alignment
+results              : ./$params.outdir/raw_variant_calling_files
 ===============================================================
 """
 
@@ -69,6 +73,7 @@ if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
 
 def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.getClass() == java.lang.Integer ? "--ploidy ${params.ploidy} ":''
+
 def reference = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.fasta": params.indexRef
 def seqRef = params.genome != "GRCh37" && params.genome != "GRCh38" ? "${params.working_dir}/${params.indir}/custom_reference/${prefixRef}.fasta": params.seqRef
 
@@ -92,28 +97,24 @@ if(!params.GVCFmode){
         set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
 
       output:
-        set sampleId, file('*vcf') into ch_vcf
-      //reference = file(params.seqRef)
+
+        set sampleId, file("*.vcf") into ch_vcf
 
       script:
-        /*
-        println("${bam_file[0]}")
-        println("${bam_file[1]}")
-        */
 
         if(params.vc == 'gatk'){
 
         """
-        gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId}.${params.vc}.vcf -R ${reference} ${params.vcOpts}
+        gatk HaplotypeCaller --native-pair-hmm-threads ${params.threads} ${params.rmDups_GATK} ${region_interval} -I ${bam_file[0]} -O ${sampleId}.${params.vc}.vcf -R ${seqRef} ${params.vcOpts}
         """
         }else if(params.vc == 'freebayes'){
 
         """
-        freebayes ${ploidy} -f ${reference} ${bam_file[0]} > ${sampleId}.${params.vc}.vcf
+        freebayes ${ploidy} -f ${seqRef} ${bam_file[0]} > ${sampleId}.${params.vc}.vcf
         """
         }else if(params.vc == 'varscan'){
         """
-        samtools mpileup -B -f ${reference} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId}.${params.vc}.vcf
+        samtools mpileup -B -f ${seqRef} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId}.${params.vc}.vcf
         
         """
         }
@@ -139,7 +140,6 @@ if(!params.GVCFmode){
             .map{it -> [params.common_id, it[1]]}
             .groupTuple()
             .set{ch_variant_calling}
-
       }
 
       process Variant_Calling_batch {
@@ -154,8 +154,8 @@ if(!params.GVCFmode){
           set expId, val(data) from ch_variant_calling //.combine(ch_variant_calling2)
 
         output:
-          set expId, file('*.clean.vcf') into ch_vcf
-        //reference = file(params.seqRef)
+
+          set expId, file('*.clean.vcf') into ch_vcf_sample
 
         script:
 
@@ -171,7 +171,8 @@ if(!params.GVCFmode){
             def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt_fraction}"
           """
           freebayes ${ploidy} --min-alternate-fraction ${min_alt_fraction_var} ${GVCF} -f ${seqRef} ${bams} > ${expId}.${params.vc}.vcf
-	  cat ${expId}.${params.vc}.vcf | grep -v '<\\*>' > ${expId}.${params.vc}.clean.vcf
+          cat ${expId}.${params.vc}.vcf | grep -v '<\\*>' > ${expId}.${params.vc}.clean.vcf
+
           """
           }else if(params.vc == 'varscan'){
 
@@ -181,22 +182,35 @@ if(!params.GVCFmode){
         }
 
 
+      process Sample_isolation {
+        tag "From a gVCF isolate different samples with their particular mutations"
+        publishDir "$params.outdir/raw_variant_calling_files/samples_isolates", mode: 'copy'
+      
+        input:
+          set sampleId, file(vcf_file), file(idx_file) from ch_vcf_sample
+        output:
+          file("*.vcf") into ch_vcf
+      
+        script:
+        """
+        $baseDir/scripts/extract_all_samples ${vcf_file[0]}
+        """
+      }
     }
-
-  process VCF_indexing {
-    tag "Indexes vcf files generated by Variant_Calling"
-    label 'med_mem'
-
+    
+    process Sample_indexing {
+    tag "index vcf files of isolated samples"
     publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
-
+  
     input:
-      set sampleId, file(vcf_file) from ch_vcf
+      file(vcf_file) from ch_vcf.flatten()
     output:
-      set sampleId, file("${vcf_file[0]}"), file('*.vcf.idx')
-
+      file("${vcf_file}")
+      file('*.vcf.idx')
+  
     script:
     """
-    gatk IndexFeatureFile --input ${vcf_file[0]}
+    gatk IndexFeatureFile --input ${vcf_file}
     """
   }
 

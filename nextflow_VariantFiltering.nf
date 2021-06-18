@@ -14,7 +14,7 @@ def helpMessage() {
     Options:
       
       --genome <GRCh37 | GRCh38 | [FILE]>  Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
-      --region_intervals [BED FILE]           Complete path to specific genomic region in .list format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
+      --region_intervals [BED FILE]        Complete path to specific genomic region in .list format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
       --VCF_files                          The input directory, all vcf files in this directory will be processed. (default: $params.outdir/raw_variant_calling)
       --outdir                             The output directory where the results will be saved (default: $params.outdir)
       
@@ -115,7 +115,7 @@ process Sorting_Variants {
 
 process MergeVcfs {
   tag "Merges both snp and indel vcfs, filtered and sorted"
-  publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+  publishDir "$params.outdir/curated_variant_calling_files", mode: 'copy'
   label	"vfiltering"
 
   input:
