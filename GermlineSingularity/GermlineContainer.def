@@ -5,7 +5,7 @@ From: ubuntu:16.04
 
     # install some system deps
     apt-get -y update
-    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip r-base-core
+    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip
     apt-get clean 
 
 
@@ -13,8 +13,8 @@ From: ubuntu:16.04
 	tar xvfz /home/BBDD/Homo_sapiens_Ensembl_GRCh37.tar.gz
 	wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz
 	tar xvfz /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
-
-    mkdir /data-store
+	rm /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
+	rm /home/BBDD/Homo_sapiens_Ensembl_GRCh37.tar.gz
 
 # ######################### FastQC #######################
 %apprun fastqc
