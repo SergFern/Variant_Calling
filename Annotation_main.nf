@@ -29,9 +29,9 @@ workflow {
 }
 
 /* COMMENT SECTION
-TODO: integrated workflow
-TODO: test snpEff in nextflow
-TODO: test with container
+TODO: modular workflows
+TODO: add generic label to VariantFIltering and jointVariantCalling script
 TODO: investigate - specific config file
 TODO: separate profiles configuration from general .config file
+TODO: Log files with process versions, container status, etc
 */
