@@ -3,7 +3,7 @@
 nextflow.enable.dsl=2
 
 process VCF_Normalization {
-    publishDir = "results"
+    publishDir = "params.outdir"
     label 'bcftools'
 
     input:
@@ -17,7 +17,7 @@ process VCF_Normalization {
 }
 
 process VCF_Decomposition {
-    publishDir = "results"
+    publishDir = "params.outdir"
     label 'bcftools'
 
     input:
@@ -31,7 +31,7 @@ process VCF_Decomposition {
 }
 
 process Annotation {
-    publishDir = "results"
+    publishDir = "params.outdir"
     label 'snpEffect'
 
     input:
