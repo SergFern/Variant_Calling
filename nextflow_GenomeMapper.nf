@@ -200,7 +200,7 @@ process FASTQ_Trimming {
    set sampleId, file(samples) from ch_samples
 
    output:
-   set sampleId, file('*.fastq.gz') into ch_alignment
+   set sampleId, file('*_trimmed.fastq.gz') into ch_alignment
 
    script:
 
@@ -209,7 +209,7 @@ process FASTQ_Trimming {
    if(params.paired){
 
       """
-      trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1_trimmed.fastq.gz bad_1 ${sampleId[0]}_R2_trimmed.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
    }
    else{
@@ -452,7 +452,7 @@ if(params.skip_variant_calling){}else{
   process Variant_Calling_single {
     tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
     label 'big_mem'
-    //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
+    publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 
     input:
       set sampleId, file(bam_file),file(bai_file) from ch_variant_calling //.combine(ch_variant_calling2)
