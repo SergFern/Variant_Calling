@@ -56,7 +56,6 @@ region_intervals     : $params.region_intervals
 skip variant calling : $params.skip_variant_calling
 dbSNP                : $params.dbSNP
 
-
 paired               : $params.paired
 aligner              : $params.aln
 variant_caller       : $params.vc
@@ -65,6 +64,7 @@ ploidy               : $params.ploidy
 
 read_directory       : $params.indir
 results              : $params.outdir
+bbdd location        : $params.BBDD
 ===============================================================
 """
 
@@ -72,9 +72,9 @@ if(params.paired){
 
   //Reads must be read twice, both as a tupple and as an array
   Channel
-      .fromFilePairs(params.reads, size: 2, checkIfExists: true, flat:true)
-      .take( params.dev ? params.number_of_inputs : -1 ) //TESTING: should only run partial data
-      .into{ [ch_pre_samples, ch_FlowCell_lane] }
+    .fromFilePairs(params.reads, size: 2, checkIfExists: true, flat:true)
+    .take( params.dev ? params.number_of_inputs : -1 )
+    .into{ [ch_pre_samples, ch_FlowCell_lane] }
 
 
    //Make ch_pre_samples a tuple to process SampleId in processes more easily and to include it in ReadGroup (RG) info.
@@ -406,7 +406,7 @@ process BAM_file_indexing{
 // Telling nextflow seqRef is a path to a file.
 def seqRef = file(params.seqRef)
 
-if(params.dbSNP != 'NO_FILE'){
+if(dbSNP != 'NO_FILE'){
 
   process BaseRecalibrator {
     tag "Calculate Base recalibration table"
@@ -425,7 +425,7 @@ if(params.dbSNP != 'NO_FILE'){
     script:
 
     """
-    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${params.dbSNP} -output ${sampleId[0]}.BQSR.table -reference ${params.seqRef}
+    gatk BaseRecalibrator ${region_interval} -I ${bam_files[0]} -known-sites ${dbSNP} -output ${sampleId[0]}.BQSR.table -reference ${params.seqRef}
     """
     }
 
@@ -503,7 +503,6 @@ def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt
       }else if(params.vc == 'varscan'){
       """
       samtools mpileup -B -f ${seqRef} ${bam_file[0]} | varscan mpileup2cns --variants --output-vcf 1 > ${sampleId[0]}.${params.vc}.vcf
-      
       """
       }
     }  

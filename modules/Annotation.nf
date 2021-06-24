@@ -3,7 +3,7 @@
 nextflow.enable.dsl=2
 
 process VCF_Normalization {
-    publishDir = "params.outdir"
+    publishDir = "$params.outdir/vcf_cleanup"
     label 'bcftools'
 
     input:
@@ -17,7 +17,7 @@ process VCF_Normalization {
 }
 
 process VCF_Decomposition {
-    publishDir = "params.outdir"
+    publishDir = "$params.outdir/vcf_cleanup"
     label 'bcftools'
 
     input:
@@ -30,8 +30,8 @@ process VCF_Decomposition {
         """
 }
 
-process Annotation {
-    publishDir = "params.outdir"
+process snpEff {
+    publishDir = "$params.outdir/annotation"
     label 'snpEffect'
 
     input:
@@ -40,7 +40,37 @@ process Annotation {
         file('*.vcf')
     script:
         """
-        snpEff -v -dataDir $params.snpEffdb $params.genome_annot $vcf > ${vcf.baseName}.annot.vcf
+        snpEff -v -dataDir $params.snpEffdb $params.genome_annot $vcf > ${vcf.baseName}.snpeff.vcf
+        """
+
+}
+
+process snpSift_annotate {
+    publishDir = "$params.outdir/annotation"
+    label 'snpSift'
+
+    input:
+        path vcf
+    output:
+        file('*.vcf')
+    script:
+        """
+        snpSift annotate $params.dbSNP_annot $vcf > ${vcf.baseName}.snpsift.vcf
+        """
+
+}
+
+process snpSift_filter {
+    publishDir = "$params.outdir/annotation"
+    label 'snpEffect'
+
+    input:
+        path vcf
+    output:
+        file('*.vcf')
+    script:
+        """
+        cat $vcf | snpSift filter --set $params.rsID_list_FARMA "ID in SET[0]" > ${vcf.baseName}.set.vcf
         """
 
 }

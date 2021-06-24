@@ -9,13 +9,21 @@ A N N O T A T O R  - snpEff    v 0.1
 ================================================================
 VCF_files               : $params.VCF_files
 genome reference        : $params.seqRef
+outdir                  : $params.outdir
+
+#### snpEff ####
+
 genome_annot            : $params.genome_annot
 snpEffdb                : $params.snpEffdb
-outdir                  : $params.outdir
+
+#### snpSift ####
+
+Annotating db           : $params.dbSNP_annot
+rsID set                : $params.rsID_list_FARMA
 ================================================================
 """
 
-include { VCF_Normalization; VCF_Decomposition; Annotation } from './modules/Annotation.nf'
+include { VCF_Normalization; VCF_Decomposition; snpEff; snpSift_annotate; snpSift_filter } from './modules/Annotation.nf'
 
 
 workflow {
@@ -24,7 +32,10 @@ workflow {
 
     VCF_Normalization(data)
     VCF_Decomposition(VCF_Normalization.out)
-    Annotation(VCF_Decomposition.out)
+    snpEff(VCF_Decomposition.out)
+    snpSift_annotate(snpEff.out)
+    snpSift_filter(snpSift_annotate.out)
+
 
 }
 
