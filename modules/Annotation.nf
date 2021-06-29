@@ -47,21 +47,6 @@ process snpEff {
 
 process snpSift_annotate {
     publishDir = "$params.outdir/annotation"
-    label 'snpSift'
-
-    input:
-        path vcf
-    output:
-        file('*.vcf')
-    script:
-        """
-        snpSift annotate $params.dbSNP_annot $vcf > ${vcf.baseName}.snpsift.vcf
-        """
-
-}
-
-process snpSift_filter {
-    publishDir = "$params.outdir/annotation"
     label 'snpEffect'
 
     input:
@@ -70,7 +55,7 @@ process snpSift_filter {
         file('*.vcf')
     script:
         """
-        cat $vcf | snpSift filter --set $params.rsID_list_FARMA "ID in SET[0]" > ${vcf.baseName}.set.vcf
+        snpSift annotate -id $params.dbSNP_annot $vcf > ${vcf.baseName}.snpsift.vcf
         """
 
 }
