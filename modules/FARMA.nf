@@ -5,7 +5,7 @@ nextflow.enable.dsl=2
 // ################## FILTERS ########################
 
 process snpSift_filter_rsID {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -20,7 +20,7 @@ process snpSift_filter_rsID {
 }
 
 process snpSift_filter_def_genes {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -33,7 +33,7 @@ process snpSift_filter_def_genes {
         """
 }
 process snpSift_filter_func_genes {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -46,7 +46,7 @@ process snpSift_filter_func_genes {
         """
 }
 process snpSift_filter_dip_genes {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -61,3 +61,34 @@ process snpSift_filter_dip_genes {
 
 // ################## ########################
 
+process extract_info {
+    publishDir = "$params.outdir/FARMA"
+    label 'snpEffect'
+
+    input:
+        path vcf
+    output:
+        file('*tsv')
+    script:
+        """
+        snpSift extractFields $vcf CHROM POS ID ANN[0].GENE > ${vcf.baseName}.ID.genes.tsv
+        """
+}
+
+// ################## R scripts ########################
+
+process Match_alleles {
+    publishDir = "$params.outdir/FARMA"
+    label 'R'
+
+    input:
+        path tsv
+        path vcf
+    output:
+        file('*.report')
+    script:
+    '''
+    
+    '''
+
+}
