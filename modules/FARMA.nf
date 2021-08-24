@@ -5,7 +5,7 @@ nextflow.enable.dsl=2
 // ################## FILTERS ########################
 
 process snpSift_filter_rsID {
-    publishDir = "$params.outdir/FARMA"
+    publishDir = "$params.outdir/results/annotation"
     label 'snpEffect'
 
     input:
@@ -20,7 +20,7 @@ process snpSift_filter_rsID {
 }
 
 process snpSift_filter_def_genes {
-    publishDir = "$params.outdir/FARMA"
+    publishDir = "$params.outdir/results/annotation"
     label 'snpEffect'
 
     input:
@@ -33,7 +33,7 @@ process snpSift_filter_def_genes {
         """
 }
 process snpSift_filter_func_genes {
-    publishDir = "$params.outdir/FARMA"
+    publishDir = "$params.outdir/results/annotation"
     label 'snpEffect'
 
     input:
@@ -46,7 +46,7 @@ process snpSift_filter_func_genes {
         """
 }
 process snpSift_filter_dip_genes {
-    publishDir = "$params.outdir/FARMA"
+    publishDir = "$params.outdir/results/annotation"
     label 'snpEffect'
 
     input:
@@ -59,16 +59,16 @@ process snpSift_filter_dip_genes {
         """
 }
 
-// ################## ########################
+// ################## Data Manipulation ########################
 
 process extract_info {
-    publishDir = "$params.outdir/FARMA"
+    publishDir = "$params.outdir/results/FARMA/"
     label 'snpEffect'
 
     input:
         path vcf
     output:
-        file('*tsv')
+        tuple file('*tsv'), file(vcf)
     script:
         """
         snpSift extractFields $vcf CHROM POS ID ANN[0].GENE > ${vcf.baseName}.ID.genes.tsv
@@ -77,18 +77,17 @@ process extract_info {
 
 // ################## R scripts ########################
 
-process Match_alleles {
-    publishDir = "$params.outdir/FARMA"
+process match_alleles {
+    publishDir = "$params.outdir/results/FARMA"
     label 'R'
 
     input:
-        path tsv
-        path vcf
+        tuple file(tsv), file(vcf)
     output:
         file('*.report')
     script:
-    '''
-    
-    '''
+    """
+    ~/Variant_Calling/scripts/allele_def_id.R $vcf $tsv > ${vcf.baseName}.alleleDef.report
+    """
 
 }
