@@ -46,7 +46,7 @@ allele_func_gene_list <- read_lines(paste0(database_dir,'/Allele_functionality/a
 vcf_file <- grep(files, pattern = ".vcf", value = TRUE)
 if(!file.exists(vcf_file)){
   
-  stop(paste(vcf_file, 'Â¡Error! file not found. Exiting.'))
+  stop(paste(vcf_file, '¡Error! file not found. Exiting.'))
   
 }
 
@@ -72,6 +72,7 @@ genes <- unique(extracted_Data$`ANN[0].GENE`)
 cat(paste("# Genes found in sample and present in database:", paste(genes, collapse = ', ')))
 
 ######################## QUERY ##########################
+
 allele_def_data <- dir(paste0(database_dir,'/Allele_definition'), full.names = TRUE, pattern = 'allele')
 cat("\n######################\n")
 cat("\n")
@@ -119,11 +120,11 @@ for(gene in pull(unique(extracted_Data[4]))){
     similarity_coeff <- sum(rsID_list %in% allele_variants)/length(allele_variants)
     if(similarity_coeff == 1){
       # If true include in report
-      cat("#Match:")
+      cat("#Match:\n")
       cat("#------------\n")
-      cat(paste('#Variants\tAllele\n'))
-      cat(paste(paste(rsID_list, collapse = '|'),'\t',alleles[i], '\n'))
-      cat("#------------------\n\n")
+      cat(paste('Variants\tAllele\tGene\n'))
+      cat(paste(paste(rsID_list, collapse = '|'),'\t',alleles[i],'\t',gene,'\n'))
+      cat("#-------------\n\n")
       
     }else if(similarity_coeff < 0.5){
       # If not all variants are found, which are missing?
