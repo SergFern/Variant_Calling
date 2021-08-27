@@ -21,9 +21,6 @@ help_variants <- c("--help", "-help")
 payload <- paste0("|",paste0(files,collapse = '|'),"|")
 
 if(any(str_detect(payload, pattern = help_variants))){
-  # cat(payload)
-  # cat(paste(help_variants))
-  # print(str_detect(payload, pattern = help_variants))
   cat(help_message)
   stop_quietly()
 }else if(isFALSE(str_detect(payload, pattern = '.vcf'))){
@@ -72,6 +69,7 @@ genes <- unique(extracted_Data$`ANN[0].GENE`)
 cat(paste("# Genes found in sample and present in database:", paste(genes, collapse = ', ')))
 
 ######################## QUERY ##########################
+# TODO: Not all genes have entries with rsIds on all columns, we probably have to use REF and ALT or nucleotide change (87G>C)
 
 allele_def_data <- dir(paste0(database_dir,'/Allele_definition'), full.names = TRUE, pattern = 'allele')
 cat("\n######################\n")
@@ -122,7 +120,7 @@ for(gene in pull(unique(extracted_Data[4]))){
       # If true include in report
       cat("#Match:\n")
       cat("#------------\n")
-      cat(paste('Variants\tAllele\tGene\n'))
+      cat(paste('#Variants\tAllele\tGene\n'))
       cat(paste(paste(rsID_list, collapse = '|'),'\t',alleles[i],'\t',gene,'\n'))
       cat("#-------------\n\n")
       
