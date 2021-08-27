@@ -5,7 +5,7 @@ nextflow.enable.dsl=2
 // ################## FILTERS ########################
 
 process snpSift_filter_rsID {
-    publishDir = "$params.outdir/results/annotation"
+    publishDir = "$params.outdir/annotation"
     label 'snpEffect'
 
     input:
@@ -20,7 +20,7 @@ process snpSift_filter_rsID {
 }
 
 process snpSift_filter_def_genes {
-    publishDir = "$params.outdir/results/annotation"
+    publishDir = "$params.outdir/annotation"
     label 'snpEffect'
 
     input:
@@ -33,7 +33,7 @@ process snpSift_filter_def_genes {
         """
 }
 process snpSift_filter_func_genes {
-    publishDir = "$params.outdir/results/annotation"
+    publishDir = "$params.outdir/annotation"
     label 'snpEffect'
 
     input:
@@ -46,7 +46,7 @@ process snpSift_filter_func_genes {
         """
 }
 process snpSift_filter_dip_genes {
-    publishDir = "$params.outdir/results/annotation"
+    publishDir = "$params.outdir/annotation"
     label 'snpEffect'
 
     input:
@@ -62,7 +62,7 @@ process snpSift_filter_dip_genes {
 // ################## Data Manipulation ########################
 
 process extract_info {
-    publishDir = "$params.outdir/results/FARMA/"
+    publishDir = "$params.outdir/FARMA/"
     label 'snpEffect'
 
     input:
@@ -77,8 +77,8 @@ process extract_info {
 
 // ################## R scripts ########################
 
-process match_alleles {
-    publishDir = "$params.outdir/results/FARMA"
+process allele_def {
+    publishDir = "$params.outdir/FARMA"
     label 'R'
 
     input:
@@ -88,6 +88,21 @@ process match_alleles {
     script:
     """
     ~/Variant_Calling/scripts/allele_def_id.R $vcf $tsv > ${vcf.baseName}.alleleDef.report
+    """
+
+}
+
+process match_alleles {
+    publishDir = "$params.outdir/FARMA"
+    label 'R'
+
+    input:
+        file(report)
+    output:
+        file('*.tsv')
+    script:
+    """
+    ~/Variant_Calling/scripts/match_allele.R $report
     """
 
 }

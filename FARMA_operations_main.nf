@@ -16,7 +16,7 @@ farmaDB                 : $params.farmaDB
 ================================================================
 """
 
-include { snpSift_filter_rsID; snpSift_filter_def_genes; extract_info; match_alleles } from './modules/FARMA.nf'
+include { snpSift_filter_rsID; snpSift_filter_def_genes; extract_info; allele_def; match_alleles } from './modules/FARMA.nf'
 
 
 workflow {
@@ -25,6 +25,7 @@ workflow {
     snpSift_filter_rsID(data)
     snpSift_filter_def_genes(snpSift_filter_rsID.out)
     extract_info(snpSift_filter_def_genes.out)
-    match_alleles(extract_info.out)
+    allele_def(extract_info.out)
+    match_alleles(allele_def.out)
 
 }
