@@ -43,7 +43,7 @@ allele_func_gene_list <- read_lines(paste0(database_dir,'/Allele_functionality/a
 vcf_file <- grep(files, pattern = ".vcf", value = TRUE)
 if(!file.exists(vcf_file)){
   
-  stop(paste(vcf_file, '¡Error! file not found. Exiting.'))
+  stop(paste(vcf_file, 'Â¡Error! file not found. Exiting.'))
   
 }
 

@@ -43,15 +43,15 @@ allele_func_gene_list <- read_lines(paste0(database_dir,'/Allele_functionality/a
 # minor checks
 report_file <- grep(files, pattern = ".report", value = TRUE)
 if(!file.exists(report_file)){
-  stop(paste(report_file, '¡Error! file not found. Exiting.'))
+  stop(paste(report_file, 'Â¡Error! file not found. Exiting.'))
 }else if(length(report_file) > 1){
-  stop('¡Error! only one file procesable at a time.')
+  stop('Â¡Error! only one file procesable at a time.')
 }
 
 report_file.lines <- read_lines("../Variant_Calling/results/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.set.genes.alleleDef.report",
                                 skip_empty_rows = TRUE)
 if(length(report_file.lines) == 0){
-  stop('¡Error! Empty report file.')
+  stop('Â¡Error! Empty report file.')
   }
 
 ######################### cleanup #######################
