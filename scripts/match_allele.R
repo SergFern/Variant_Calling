@@ -14,7 +14,7 @@ database_dir <- '/home/bioinfo/FARMA/cipic_info_genes'
 
 files <- commandArgs(trailingOnly=TRUE)
 # Debugging
-# files <- c("../Variant_Calling/results/results/FARMA/HCOL.gatk.norm.decomp.snpeff.annot.set.set.genes.alleleDef.report")
+# files <- c("../Variant_Calling/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.set.genes.alleleDef.report")
 
 file_prefix <- str_split(str_split(files, '/')[[1]][length(str_split(files, '/')[[1]])], '\\.')[[1]][1]
 
@@ -48,8 +48,7 @@ if(!file.exists(report_file)){
   stop('¡Error! only one file procesable at a time.')
 }
 
-report_file.lines <- read_lines("../Variant_Calling/results/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.set.genes.alleleDef.report",
-                                skip_empty_rows = TRUE)
+report_file.lines <- read_lines(report_file, skip_empty_rows = TRUE)
 if(length(report_file.lines) == 0){
   stop('¡Error! Empty report file.')
   }
@@ -58,7 +57,7 @@ if(length(report_file.lines) == 0){
 
 matches <- grep(report_file.lines, pattern = '#', fixed = TRUE, value = TRUE, invert = TRUE)
 
-data <- str_split(str_trim(str_replace(matches, "\t ", ""))," ")
+data <- str_split(str_trim(str_replace_all(matches, "\t ", ""))," ")
 
 ######################### OPERATIONS ######################### 
 
@@ -70,9 +69,9 @@ if(length(matches) == 0){#no matches
   for(i in data){ # skips first line - header
     n = n + 1
     # Identify data of interest in report file
-    gene <- i[length(i)]
-    allele <- i[length(i)-1]
     variants <- i[1]
+    allele <- i[length(i)-1]
+    gene <- i[length(i)]
     
     ######################### QUERY ######################### 
     # 1st check we have gene in DDBB
@@ -88,9 +87,8 @@ if(length(matches) == 0){#no matches
     functional_info.index <- grep(colnames(func_file.data.query), pattern = glob2rx('*Clinical*Functional*'))
     clinical_function <- func_file.data.query[,functional_info.index]
     
-
+    # Store and fuse multiple matches
     tmp_store <- tibble(Gene = gene, Allele = allele, Clinical_function = clinical_function, Variants = variants)
-    
     tibble_list <- append(tibble_list, list(tmp_store))
     
   }
