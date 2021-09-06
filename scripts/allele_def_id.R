@@ -11,12 +11,14 @@ database_dir <- '/home/bioinfo/FARMA/cipic_info_genes'
 # Print if --help is given as an argument
 # Print if argument checks fail
 
+#TODO: include AF value in report for later the diplotype analisis.
+
 files <- commandArgs(trailingOnly=TRUE)
 #debugging
-#files <- c("my-results/annotation/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.vcf", "my-results/annotation/HCOL.ID.genes2.tsv")
+# files <- c("~/Variant_Calling/results/annotation/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.vcf", "/home/bioinfo/Variant_Calling/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.set.genes.ID.genes.tsv")
 
 # Help reminder message:
-help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE]\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'
+help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE] > output.report\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'
 help_variants <- c("--help", "-help")
 payload <- paste0("|",paste0(files,collapse = '|'),"|")
 
@@ -32,7 +34,6 @@ if(any(str_detect(payload, pattern = help_variants))){
 }
 
 ######################## DDBB ##########################
-# TODO: Introduce DDBB as a parameter
 
 diplo_gene_list <- read_lines(paste0(database_dir,'/Diplotype-Phenotype/available_genes.list'))
 allele_def_gene_list <- read_lines(paste0(database_dir,'/Allele_definition/available_genes.list'))
@@ -66,6 +67,7 @@ tsv_file <- grep(files, pattern = ".tsv", value = TRUE)
 extracted_Data <- read_tsv(file = tsv_file, col_names = TRUE)
 
 genes <- unique(extracted_Data$`ANN[0].GENE`)
+AF <- extracted_Data$AF
 cat(paste("# Genes found in sample and present in database:", paste(genes, collapse = ', ')))
 
 ######################## QUERY ##########################
@@ -120,8 +122,8 @@ for(gene in pull(unique(extracted_Data[4]))){
       # If true include in report
       cat("#Match:\n")
       cat("#------------\n")
-      cat(paste('#Variants\tAllele\tGene\n'))
-      cat(paste(paste(rsID_list, collapse = '|'),'\t',alleles[i],'\t',gene,'\n'))
+      cat(paste('#Variants\tAllele\tGene\tAF\n'))
+      cat(paste(paste(rsID_list, collapse = '|'),'\t',alleles[i],'\t',gene,'\t',extracted_Data[extracted_Data$ID==rsID_list,]$AF,'\n'))
       cat("#-------------\n\n")
       
     }else if(similarity_coeff < 0.5){
@@ -135,10 +137,8 @@ for(gene in pull(unique(extracted_Data[4]))){
       cat(paste0('#Partial match with allele ', alleles[i], ' with ', similarity_coeff*100, '% common variants.\n'))
       
     }
-     
   }
-  
 }
 
 ######################## OUTPUT #########################
-
+# Redirect output with ">"
