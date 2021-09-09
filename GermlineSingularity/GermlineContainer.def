@@ -274,6 +274,19 @@ VarScan 2.4.4 . https://github.com/dkoboldt/varscan
 
 %appenv gatk
 
+# ###################### Picard #######################################
+
+%apprun picard
+	exec java -jar picard.jar "$@"
+
+%appinstall picard
+	wget https://github.com/broadinstitute/picard/releases/download/2.26.1/picard.jar
+	ln -s picard.jar /usr/local/bin
+
+%apphelp picard
+
+	picard . https://broadinstitute.github.io/picard/
+
 ##############################################################################
 
 
@@ -281,5 +294,3 @@ VarScan 2.4.4 . https://github.com/dkoboldt/varscan
 	Author Fernández-Val
 	Co-author Fernández-Peñalver-Sergio
 	Version v3.0
-
-
