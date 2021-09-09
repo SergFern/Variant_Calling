@@ -11,14 +11,14 @@ database_dir <- '/home/bioinfo/FARMA/cipic_info_genes'
 # Print if --help is given as an argument
 # Print if argument checks fail
 
-#TODO: include AF value in report for later the diplotype analisis.
+#TODO: include AF value in log for later the diplotype analisis.
 
 files <- commandArgs(trailingOnly=TRUE)
 #debugging
-# files <- c("~/Variant_Calling/results/annotation/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.vcf", "/home/bioinfo/Variant_Calling/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.set.genes.ID.genes.tsv")
+# files <- c("~/Variant_Calling/results/annotation/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.genes.vcf", "/home/bioinfo/Variant_Calling/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.genes.ID.tsv")
 
 # Help reminder message:
-help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE] > output.report\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'
+help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE] > output.log\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'
 help_variants <- c("--help", "-help")
 payload <- paste0("|",paste0(files,collapse = '|'),"|")
 
@@ -119,7 +119,7 @@ for(gene in pull(unique(extracted_Data[4]))){
     allele_variants <- rsID_list_def[allele_variants == 1]
     similarity_coeff <- sum(rsID_list %in% allele_variants)/length(allele_variants)
     if(similarity_coeff == 1){
-      # If true include in report
+      # If true include in log
       cat("#Match:\n")
       cat("#------------\n")
       cat(paste('#Variants\tAllele\tGene\tAF\n'))

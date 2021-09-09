@@ -29,7 +29,7 @@ process snpSift_filter_def_genes {
         file('*.vcf')
     script:
         """
-        cat $vcf | snpSift filter --set $params.farmaDB/Allele_definition/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.set.genes.vcf
+        cat $vcf | snpSift filter --set $params.farmaDB/Allele_definition/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.genes.vcf
         """
 }
 process snpSift_filter_func_genes {
@@ -42,7 +42,7 @@ process snpSift_filter_func_genes {
         file('*.vcf')
     script:
         """
-        cat $vcf | snpSift filter --set $params.farmaDB/Allele_functionality/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.set.genes.vcf
+        cat $vcf | snpSift filter --set $params.farmaDB/Allele_functionality/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.genes.vcf
         """
 }
 process snpSift_filter_dip_genes {
@@ -55,7 +55,7 @@ process snpSift_filter_dip_genes {
         file('*.vcf')
     script:
         """
-        cat $vcf | snpSift filter --set $params.farmaDB/Diplotype-Phenotype/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.set.genes.vcf
+        cat $vcf | snpSift filter --set $params.farmaDB/Diplotype-Phenotype/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.genes.vcf
         """
 }
 
@@ -71,7 +71,7 @@ process extract_info {
         tuple file('*tsv'), file(vcf)
     script:
         """
-        snpSift extractFields $vcf CHROM POS ID ANN[0].GENE > ${vcf.baseName}.ID.genes.tsv
+        snpSift extractFields $vcf CHROM POS ID ANN[0].GENE AF > ${vcf.baseName}.ID.tsv
         """
 }
 
@@ -84,10 +84,10 @@ process allele_def {
     input:
         tuple file(tsv), file(vcf)
     output:
-        file('*.report')
+        file('*.log')
     script:
     """
-    ~/Variant_Calling/scripts/allele_def_id.R $vcf $tsv > ${vcf.baseName}.alleleDef.report
+    ~/Variant_Calling/scripts/allele_def_id.R $vcf $tsv > ${vcf.baseName}.alleleDef.log
     """
 
 }
@@ -97,12 +97,27 @@ process match_alleles {
     label 'R'
 
     input:
-        file(report)
+        file(log_file)
     output:
-        file('*.tsv')
+        tuple file('*.tsv'), file(log_file)
     script:
     """
-    ~/Variant_Calling/scripts/match_allele.R $report
+    ~/Variant_Calling/scripts/match_allele.R $log_file
+    """
+
+}
+
+process diplotype_analysis {
+    publishDir = "$params.outdir/FARMA"
+    label 'R'
+
+    input:
+        tuple file(tsv), file(log_file)
+    output:
+        tuple file(tsv), file(log_file)
+    script:
+    """
+    ~/Variant_Calling/scripts/diplotype_analysis.R $tsv >> $log_file
     """
 
 }
