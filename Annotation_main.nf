@@ -1,5 +1,7 @@
 #!/usr/bin/env nextflow
 
+//TODO: --help message Annotation main
+
 nextflow.enable.dsl=2
 
 log.info """\
@@ -23,7 +25,7 @@ rsID set                : $params.rsID_list_FARMA
 ================================================================
 """
 
-include { VCF_Normalization; VCF_Decomposition; snpEff; snpSift_annotate; snpSift_filter } from './modules/Annotation.nf'
+include { VCF_Normalization; VCF_Decomposition; snpEff; snpSift_annotate } from './modules/Annotation.nf'
 
 
 workflow {
