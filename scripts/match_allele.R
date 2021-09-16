@@ -1,10 +1,13 @@
 #!/usr/bin/Rscript
 
-source('/home/bioinfo/biosoft/R_scripts/stop_quietly.R')
 library(tidyverse)
 library(xlsx)
 
-database_dir <- '/home/bioinfo/FARMA/cipic_info_genes'
+# Find home directory:
+home <- paste0(str_split(getwd(),'/')[[1]][1:3], collapse = '/')
+source(paste0(home,'/biosoft/R_scripts/aid_functions.R'))
+
+database_dir <- paste0(home,'/bioinfo/FARMA/cipic_info_genes/Diplotype-Phenotype')
 # TODO: write output to .log
 ######################## BASIC HELP MESSAGE ##########################
 # Print if --help is given as an argument
