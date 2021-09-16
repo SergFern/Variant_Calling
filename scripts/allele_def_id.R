@@ -12,13 +12,11 @@ database_dir <- paste0(home,'/FARMA/cipic_info_genes')
 
 ######################## BASIC HELP MESSAGE ##########################
 # Print if --help is given as an argument
-# Print if argument checks fail
+# Print if argument checks fails
 
-#TODO: include AF value in log for later the diplotype analisis.
-
-# files <- commandArgs(trailingOnly=TRUE)
+files <- commandArgs(trailingOnly=TRUE)
 #debugging
-files <- c("~/Variant_Calling/results/annotation/liftover.ID.tsv", "/home/bioinfo/Variant_Calling/results/annotation/liftover_test.vcf")
+# files <- c("~/Variant_Calling/results/annotation/liftover.ID.tsv", "/home/bioinfo/Variant_Calling/results/annotation/liftover_test.vcf")
 
 # Help reminder message:
 help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE] > output.log\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'
@@ -36,12 +34,6 @@ if(any(str_detect(payload, pattern = help_variants))){
   stop('\nTSV_FILE is missing\n')
 }
 
-######################## DDBB ##########################
-
-# diplo_gene_list <- read_lines(paste0(database_dir,'/Diplotype-Phenotype/available_genes.list'))
-# allele_def_gene_list <- read_lines(paste0(database_dir,'/Allele_definition/available_genes.list'))
-# allele_func_gene_list <- read_lines(paste0(database_dir,'/Allele_functionality/available_genes.list'))
-
 ######################## INPUT 1 ######################## 
 
 vcf_file <- grep(files, pattern = ".vcf", value = TRUE)
@@ -54,13 +46,6 @@ if(!file.exists(vcf_file)){
 cat("\n######################\n")
 cat(paste("## Procesing file:",vcf_file))
 cat("\n######################\n\n")
-
-## VCF file load not really used, commented out until I feel comfortable enough to delete it.
-# vcf_file <- read.vcfR('/home/bioinfo/Variant_Calling/my-results/annotation/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.vcf')
-# 
-# # FOR loop for every sample in a directory? Or would it be handled by nextflow sample by sample?
-# vcf_file.df <- vcfR2tidy(vcf_file)
-cat("\n######################\n")
 
 ######################## INPUT 2 ######################## 
 # TSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"
@@ -137,10 +122,6 @@ for(gene in unique(extracted_Data$`ANN[0].GENE`)){
   # column ID can be: rsID present in DB, rsID NOT present in DB, a dot (.)
   #########################
   
-  # if(any(rsID_list %in% colnames(def_table.data))){
-    
-  # rsID_list_inDB <- rsID_list[rsID_list %in% colnames(def_table.data)]
-  
   binari_info_sample <- def_table.data %>% select(all_of(extracted_Data.filtered$list_of_queries)) %>% transmute_all(~if_else(. == "",true = 0, false = 1))
     # Include rsID column
     binari_info_sample <- cbind(def_table.data %>% select(rsID), binari_info_sample)
@@ -151,25 +132,6 @@ for(gene in unique(extracted_Data$`ANN[0].GENE`)){
   def_table_selected <- binari_info_sample %>% filter_all(any_vars(. == 1))
   
   entries_of_interest <- match(def_table_selected$rsID, binari_info_table$rsID)
-  
-  # }
-  # else{matches_by_rsId <- c(2)}
-  ##########################
-  # if(any(!rsID_list %in% colnames(def_table.data))){ # check positions and REF-ALT
-  #   
-  #   matches_by_HGVS <- which(str_detect(def_table.header, pattern = HGVS))
-  #   
-  #   binari_info_sample <- def_table.data %>% select(matches_by_HGVS) %>% transmute_all(~if_else(. == "",true = 0, false = 1))
-  #   # Include rsID column
-  #   binari_info_sample <- cbind(def_table.data %>% select(rsID), binari_info_sample) %>% filter(across(c(2,ncol(binari_info_sample)),~.!=0))
-  # 
-  #   
-  #   # Fuse both index finders: matches_by_rsId,matches_by_HGVS and use unique() to discard double entries
-  #   # -> in principle there shouldn't be double entries but this makes sure.
-  #   entries_of_interest <- unique(c(matches_by_rsId,matches_by_HGVS))
-  #   
-  #   
-  # }else{entries_of_interest <- matches_by_rsId}
   
   ###########################
   # Variants are now not exclusively rsIDs but also HGVS
@@ -191,18 +153,6 @@ for(gene in unique(extracted_Data$`ANN[0].GENE`)){
   
     allele_variants <- def_table_alleles %>% slice(i) %>% select(-1) %>% unlist(., use.names = FALSE)
     allele_variants <- rsID_list_def[allele_variants == 1]
-    
-    # #Check for variants without ID
-    #   variants_wID.bool <- str_detect(allele_variants, 'rs')
-    #   if(!all(variants_wID.bool)){
-    #     
-    #     missingIDs_index_in_DB <- which(rsID_list_def == allele_variants[!variants_wID.bool])
-    #     def_table.header.missingIDs <- def_table.header[3,missingIDs_index_in_DB] %>% pull()
-    #     missingVariants_HGVS <- paste0('g.',extracted_Data.filtered_missingIDs$POS,extracted_Data.filtered_missingIDs$REF,'>',extracted_Data.filtered_missingIDs$ALT)
-    #     
-    #   }
-    #Join both variant nomenclature
-    # allele_variants <- c(allele_variants[variants_wID.bool],missingVariants_HGVS)
 
     similarity_coeff <- sum(extracted_Data.filtered$list_of_queries %in% allele_variants)/length(allele_variants)
     if(similarity_coeff == 1){
