@@ -16,6 +16,7 @@ outdir                  : $params.outdir
 
 rsID set                : $params.rsID_list_FARMA
 farmaDB                 : $params.farmaDB
+chain for liftOver      : $params.chain_path
 ================================================================
 """
 
