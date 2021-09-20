@@ -100,6 +100,7 @@ for(gene in unique(extracted_Data$`ANN[0].GENE`)){
 
 
 ######################## QUERY ##########################
+    
   # Find queries of our sample for the present gene
   extracted_Data.filtered <- extracted_Data %>% filter(`ANN[0].GENE` == gene)
   # Build query column
@@ -133,10 +134,6 @@ for(gene in unique(extracted_Data$`ANN[0].GENE`)){
   
   entries_of_interest <- match(def_table_selected$rsID, binari_info_table$rsID)
   
-  ###########################
-  # Variants are now not exclusively rsIDs but also HGVS
-  ###########################
-  
   cat(paste('## Possible alleles:', paste(def_table_selected$rsID, collapse = ', ')))
   cat("\n\n")
   # Check all required variants for allele are present
@@ -162,10 +159,10 @@ for(gene in unique(extracted_Data$`ANN[0].GENE`)){
         
       cat("#Match:\n")
       cat("#------------\n")
-      cat(paste('#Variants\tAllele\tGene\tAF\n'))
+      cat(paste('#Variants|Allele|Gene|AF\n'))
       
       }
-      cat(paste(paste(extracted_Data.filtered$list_of_queries[extracted_Data.filtered$list_of_queries %in% allele_variants], collapse = '|'),'\t',alleles[i],'\t',gene,'\t',extracted_Data.filtered[extracted_Data.filtered$list_of_queries %in% allele_variants,]$AF,'\n'))
+      cat(paste0(paste0(extracted_Data.filtered$list_of_queries[extracted_Data.filtered$list_of_queries %in% allele_variants], collapse = ','),'|',alleles[i],'|',gene,'|',extracted_Data.filtered[extracted_Data.filtered$list_of_queries %in% allele_variants,]$AF,'\n'))
       match = 1
       
     }else if(similarity_coeff < 0.5){

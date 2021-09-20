@@ -7,7 +7,7 @@ library(xlsx)
 home <- paste0(str_split(getwd(),'/')[[1]][1:3], collapse = '/')
 source(paste0(home,'/biosoft/R_scripts/aid_functions.R'))
 
-database_dir <- paste0(home,'/bioinfo/FARMA/cipic_info_genes/Diplotype-Phenotype')
+database_dir <- paste0(home,'/FARMA/cipic_info_genes')
 # TODO: write output to .log
 ######################## BASIC HELP MESSAGE ##########################
 # Print if --help is given as an argument
@@ -15,7 +15,7 @@ database_dir <- paste0(home,'/bioinfo/FARMA/cipic_info_genes/Diplotype-Phenotype
 
 files <- commandArgs(trailingOnly=TRUE)
 # Debugging
-# files <- c("../Variant_Calling/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.set.genes.alleleDef.log")
+# files <- c("/home/bioinfo/Variant_Calling/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.set.genes.alleleDef.log")
 
 file_prefix <- str_split(str_split(files, '/')[[1]][length(str_split(files, '/')[[1]])], '\\.')[[1]][1]
 
@@ -34,8 +34,6 @@ if(any(str_detect(payload, pattern = help_variants))){
 
 ######################## DDBB ##########################
 
-diplo_gene_list <- read_lines(paste0(database_dir,'/Diplotype-Phenotype/available_genes.list'))
-allele_def_gene_list <- read_lines(paste0(database_dir,'/Allele_definition/available_genes.list'))
 allele_func_gene_list <- read_lines(paste0(database_dir,'/Allele_functionality/available_genes.list'))
 
 ######################## INPUT 1 ######################## 
@@ -54,10 +52,10 @@ if(length(log_file.lines) == 0){
   }
 
 ######################### cleanup #######################
-
+#Matches DO NOT start their line with a #
 matches <- grep(log_file.lines, pattern = '#', fixed = TRUE, value = TRUE, invert = TRUE)
 
-data <- str_split(str_trim(str_replace_all(matches, "\t ", ""))," ")
+data <- str_split(str_trim(matches),n = 4, pattern = "\\|")
 
 ######################### OPERATIONS ######################### 
 
@@ -68,28 +66,29 @@ if(length(matches) == 0){#no matches
   tibble_list <- NULL
   for(i in data){ # skips first line - header
     n = n + 1
-    # Identify data of interest in log file
+    # Identify data of interest in log file OBSOLETE
     variants <- i[1]
     allele <- i[length(i)-2]
     AF <- i[length(i)]
     gene <- i[length(i)-1]
     
-    ######################### QUERY ######################### 
+    ######################### REFERENCE TABLE ######################### 
     # 1st check we have gene in DDBB
-    if(!gene %in% allele_func_gene_list){break}
     
     # Identify ddbb file
-    func_file <- grep(dir(paste0(database_dir,'/Allele_functionality/'),full.names = TRUE), pattern = gene, value = TRUE)
-    func_file.data <- read.xlsx2(func_file, sheetIndex = 1,startRow = 2, header = TRUE)
+    func_file <- dir(paste0(database_dir,'/Allele_functionality'),full.names = TRUE)[str_detect(dir(paste0(database_dir,'/Allele_functionality'),full.names = TRUE), pattern = gene)]
+    func_file.data <- tibble(read.xlsx2(func_file, sheetIndex = 1,startRow = 2, header = TRUE, colClasses = 'character'))
+ 
+    ######################### QUERY ######################### 
     
     # Match our prerequisites to data
-    allele_location <- match(allele, func_file.data[,1])
+    allele_location <- match(allele, func_file.data[,1] %>% pull())
     func_file.data.query <- func_file.data[allele_location,]
-    functional_info.index <- grep(colnames(func_file.data.query), pattern = glob2rx('*Clinical*Functional*'))
-    clinical_function <- func_file.data.query[,functional_info.index]
+    functional_info.index <- grep(colnames(func_file.data.query), pattern = glob2rx('*Clinical*Function*Required*'))
+    clinical_function <- func_file.data.query[,functional_info.index] %>% pull()
     
-    strenth_of_evidence.index <- grep(colnames(func_file.data.query), pattern = glob2rx('*Strength.of.Evidence*'))
-    strenth_of_evidence <- func_file.data.query[,strenth_of_evidence.index]
+    strenth_of_evidence.index <- grep(colnames(func_file.data.query), pattern = glob2rx('*Strength*of*Evidence*'))
+    strenth_of_evidence <- func_file.data.query[,strenth_of_evidence.index] %>% pull()
     
     # Store and fuse multiple matches
     tmp_store <- tibble(Gene = gene, Allele = allele, Clinical_function = clinical_function, Variants = variants, AF = AF, Strength_of_Evidence = strenth_of_evidence)

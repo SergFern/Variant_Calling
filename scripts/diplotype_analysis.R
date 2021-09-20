@@ -7,11 +7,7 @@ library(xlsx)
 home <- paste0(str_split(getwd(),'/')[[1]][1:3], collapse = '/')
 source(paste0(home,'/biosoft/R_scripts/aid_functions.R'))
 
-database_dir <- paste0(home,'/bioinfo/FARMA/cipic_info_genes/Diplotype-Phenotype')
-
-########################## functions #########################
-
-iscontained <- function(a,b){return(a %in% b)}
+database_dir <- paste0(home,'/FARMA/cipic_info_genes')
 
 ######################## BASIC HELP MESSAGE ##########################
 # Print if --help is given as an argument
@@ -19,11 +15,7 @@ iscontained <- function(a,b){return(a %in% b)}
 
 files <- commandArgs(trailingOnly=TRUE)
 # Debugging
-# files <- c("../Variant_Calling/results/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.annot.set.set.genes.alleleDef.log")
-#files <- c("../Variant_Calling/results/FARMA/HCOL10.allele_func_results.tsv")
-
-# unused variable
-# file_prefix <- str_split(str_split(files, '/')[[1]][length(str_split(files, '/')[[1]])], '\\.')[[1]][1]
+# files <- c("../Variant_Calling/results/FARMA/HCOL10.allele_func_results.tsv")
 
 # Help reminder message:
 # TODO: edit help message
@@ -50,7 +42,7 @@ if(!file.exists(tsv_file)){
   stop('¡Error! only one file procesable at a time.')
 }
 
-tsv_file.data <- read_tsv(tsv_file, col_names = TRUE)
+tsv_file.data <- read_tsv(tsv_file, col_names = TRUE, comment = "#")
 file_as_lines <- read_lines(tsv_file)
 if(length(tsv_file.data) == 0){
   stop('\n######### ERROR ###########\n#Empty tsv file.\n')
@@ -64,15 +56,18 @@ genes <- tsv_file.data %>% select(Gene)
 
 # There's no need to check diplotype DB if we don't have multiple alleles present.
 # Introduce an empty line
-write_lines(file = tsv_file, x = '\n########## Dyplotype analysis results ##########\n', append = TRUE)
+# tmp_file <- tempfile()
 
-for(gene in unique(genes)){
-  
+# write_lines(file = tmp_file, x = tsv_file.data)
+write_lines(file = tsv_file, x = '\n########## Dyplotype analysis results ##########\n', append = TRUE)
+cat('\n##################################################')
+cat('\n########## Dyplotype analysis results ##########\n')
+cat('##################################################\n')
+for(gene in unique(genes %>% pull())){
   alleles <- tsv_file.data %>% filter(Gene == gene) %>% select(Allele)
   af <- tsv_file.data %>% filter(Gene == gene) %>% select(AF)
   
   cat(paste0("\n#Checking diplotype effect for gene: ",gene,"\n"))
-  cat("#################\n")
   if(!nrow(alleles) > 1 && af == 0.5){
     
     cat("#Not enough alleles for dyplotype effect.\n")
@@ -83,9 +78,9 @@ for(gene in unique(genes)){
     
     ######################## read DDBB ########################
     
-    DiplotypeDB <- read.xlsx2(paste0(database_dir,'/',gene,"_Diplotype_Phenotype_Table.xlsx"), sheetIndex = 1,header = TRUE)
+    DiplotypeDB <- read.xlsx2(paste0(database_dir,'/Diplotype-Phenotype/',gene,"_Diplotype_Phenotype_Table.xlsx"), sheetIndex = 1, header = TRUE)
     # clean whitespaces
-    DiplotypeDB <- DiplotypeDB %>% mutate(CYP2C9.Diplotype = str_replace_all(CYP2C9.Diplotype, pattern = ' ', replacement = ''))
+    DiplotypeDB <- DiplotypeDB %>% mutate(across(ends_with("Diplotype"), ~str_replace_all(., pattern = ' ', replacement = '')))
     # Separate Allele pairs
     # DiplotypeDB <- DiplotypeDB %>% separate(CYP2C9.Diplotype, sep = '/', into = c('CYP2C9.Diplotype.Allele1', 'CYP2C9.Diplotype.Allele2'))
     
@@ -96,22 +91,30 @@ for(gene in unique(genes)){
       query_allele <- paste(alleles[[1]][1], alleles[[1]][1], sep = '/')
     }else{
       #Two different alleles
+      #TODO: Despite there being two alleles, one of the variants might have AF = 1
       query_allele <- paste(alleles[[1]][1], alleles[[1]][2], sep = '/')
     }
     
-      DiplotypeDB.query <- DiplotypeDB %>% filter(CYP2C9.Diplotype == query_allele)
-      cat(paste0('#Allele combination found:\n\n'))
-      for(i in c(1:4)){
-        cat(paste0(colnames(DiplotypeDB.query)[i],'\t'))
-      }
-      cat("\n")
-      for(i in c(1:4)){
-        cat(paste0(DiplotypeDB.query[[i]],'\t'))
-      }
+      DiplotypeDB.query <- DiplotypeDB %>% filter(across(ends_with("Diplotype"), ~. == query_allele))
       
-      ######################## OUTPUT ########################
-      
-      write_tsv(file = tsv_file, x = DiplotypeDB.query, append = TRUE, col_names = TRUE)
+      if(nrow(DiplotypeDB.query) != 0){
+        
+        cat(paste0('#Allele combination found for alleles: ',query_allele,'\n\n'))
+        for(i in c(1:4)){
+          cat(paste0(colnames(DiplotypeDB.query)[i],'\t'))
+        }
+        cat("\n")
+        for(i in c(1:4)){
+          cat(paste0(DiplotypeDB.query[[i]],'\t'))
+        }
+        write_tsv(file = tsv_file, x = DiplotypeDB.query, append = TRUE, col_names = TRUE)
+      }else{
+        
+        cat(paste0('#No Diplotype effect for allele combination: ',query_allele,'\n\n'))
+        
+      }
   }
+  cat("\n#--------------\n")
 }
+# file.copy(from = tmp_file,to = tsv_file,overwrite = TRUE)
 cat(paste0('#Saved in: ',tsv_file,'\n'))
