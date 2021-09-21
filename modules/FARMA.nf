@@ -2,6 +2,29 @@
 
 nextflow.enable.dsl=2
 
+/*
+
+process liftover {
+    publishDir = "$params.outdir/annotation"
+    label 'liftover'
+
+    input:
+        path vcf
+    output:
+        file('*.vcf')
+
+    when:
+        $params.genome == "GRCh37"
+    script:
+        """
+        java -Xmx8g -jar /usr/picard/picard.jar LiftoverVcf INPUT=$vcf OUTPUT=${vcf.baseName}.liftover.vcf CHAIN=$params.chain_path R=$params.seqRef --WRITE_ORIGINAL_POSITION
+        """
+
+}
+
+
+*/
+
 // ################## FILTERS ########################
 
 process snpSift_filter_rsID {
@@ -71,7 +94,7 @@ process extract_info {
         tuple file('*tsv'), file(vcf)
     script:
         """
-        snpSift extractFields $vcf CHROM POS ID ANN[0].GENE AF > ${vcf.baseName}.ID.tsv
+        snpSift extractFields $vcf CHROM POS REF ALT ID ANN[0].GENE AF > ${vcf.baseName}.ID.tsv
         """
 }
 
