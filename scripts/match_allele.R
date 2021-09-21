@@ -78,7 +78,7 @@ if(length(matches) == 0){#no matches
     # Identify ddbb file
     func_file <- dir(paste0(database_dir,'/Allele_functionality'),full.names = TRUE)[str_detect(dir(paste0(database_dir,'/Allele_functionality'),full.names = TRUE), pattern = gene)]
     func_file.data <- tibble(read.xlsx2(func_file, sheetIndex = 1,startRow = 2, header = TRUE, colClasses = 'character'))
- 
+
     ######################### QUERY ######################### 
     
     # Match our prerequisites to data

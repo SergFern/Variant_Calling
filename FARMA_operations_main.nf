@@ -1,9 +1,34 @@
 #!/usr/bin/env nextflow
 
-
-//TODO: --help message FARMA operations main
+//TODO: make --chain_path optional
 
 nextflow.enable.dsl=2
+
+def helpMessage() {
+    log.info"""
+================================================================
+V A R I A N T  A N N O T A T O R  - I R Y C I S    v 1
+================================================================
+
+    Usage:
+    The typical command for running the pipeline is as follows:
+    ./Annotation_main.nf [OPTIONS]
+
+
+    Options:
+
+    --VCF_files [FILE]                    Input vcf files. Required.
+    --genome <GRCh37 | GRCh38 | [FILE]>   Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: $params.genome)
+    --genome_annot <GRCh37.87>            Annotation reference for snpEff. default: GRCh37.87
+
+    --rsID set  [FILE]                    A list of rsIDs to filter entries with. All IDs present in file will be kept.
+    --farmaDB [PATH]                      Directory where FARMA DB are stored, default: "${params.BBDD}/FARMA/cipic_info_genes"
+    --chain_path [FILE]                   File for genome reference liftover if necesary: default: "$params.chain_path"
+
+    --outdir [PATH]                       The output directory where the results will be saved. default: "$baseDir/$params.outdir" 
+
+    """.stripIndent()
+}
 
 log.info """\
 
@@ -16,7 +41,7 @@ outdir                  : $params.outdir
 
 rsID set                : $params.rsID_list_FARMA
 farmaDB                 : $params.farmaDB
-chain for liftOver      : $params.chain_path
+chain_path              : $params.chain_path
 ================================================================
 """
 
@@ -26,6 +51,7 @@ include { snpSift_filter_rsID; snpSift_filter_def_genes; extract_info; allele_de
 workflow {
 
     data = channel.fromPath(params.VCF_files, checkIfExists: true)
+
     snpSift_filter_rsID(data)
     snpSift_filter_def_genes(snpSift_filter_rsID.out)
     extract_info(snpSift_filter_def_genes.out)
