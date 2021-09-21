@@ -28,7 +28,7 @@ process liftover {
 // ################## FILTERS ########################
 
 process snpSift_filter_rsID {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -43,7 +43,7 @@ process snpSift_filter_rsID {
 }
 
 process snpSift_filter_def_genes {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -55,8 +55,9 @@ process snpSift_filter_def_genes {
         cat $vcf | snpSift filter --set $params.farmaDB/Allele_definition/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.genes.vcf
         """
 }
+/*
 process snpSift_filter_func_genes {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -69,7 +70,7 @@ process snpSift_filter_func_genes {
         """
 }
 process snpSift_filter_dip_genes {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
@@ -81,7 +82,7 @@ process snpSift_filter_dip_genes {
         cat $vcf | snpSift filter --set $params.farmaDB/Diplotype-Phenotype/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.genes.vcf
         """
 }
-
+*/
 // ################## Data Manipulation ########################
 
 process extract_info {
