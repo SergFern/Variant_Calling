@@ -16,7 +16,8 @@ database_dir <- paste0(home,'/FARMA/cipic_info_genes')
 
 files <- commandArgs(trailingOnly=TRUE)
 #debugging
-# files <- c("~/Variant_Calling/results/annotation/liftover.ID.tsv", "/home/bioinfo/Variant_Calling/results/annotation/liftover_test.vcf")
+# files <- c("~/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.vcf", 
+           # "/home/bioinfo/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.ID.tsv")
 
 # Help reminder message:
 help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE] > output.log\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'
@@ -53,6 +54,22 @@ cat("\n######################\n\n")
 
 tsv_file <- grep(files, pattern = ".tsv", value = TRUE)
 extracted_Data <- read_tsv(file = tsv_file, col_names = TRUE)
+
+# Clean extracted data (Column `ANN[*].GENE` can have many GENE_NAME per row, select only one.)
+genes_lst_multiple <- str_split(extracted_Data$`ANN[*].GENE`,pattern = ',')
+# Need a list of available genes
+list_of_available_genes <- read_lines(paste0(home,'/FARMA/cipic_info_genes/Allele_definition/available_genes.list'))
+genes_lst_single <- c()
+for(i in 1:length(genes_lst_multiple)){
+  
+  gene_available <- genes_lst_multiple[[i]][genes_lst_multiple[[i]] %in% list_of_available_genes][1]
+  genes_lst_single <- c(genes_lst_single, gene_available)
+  
+}
+extracted_Data <- extracted_Data %>% mutate(`ANN[*].GENE` = genes_lst_single)
+# Substitute tsv file with corrected gene data
+
+write_tsv(path = tsv_file, x = extracted_Data, col_names = TRUE)
 
 # Build HGVS column
 extracted_Data <- extracted_Data %>% mutate(HGVS = paste0('g.',POS,REF,'>',ALT))
