@@ -119,18 +119,16 @@ for(gene in unique(extracted_Data$`ANN[*].GENE`)){
 ######################## QUERY ##########################
     
   # Find queries of our sample for the present gene
-  extracted_Data.filtered <- extracted_Data %>% filter(`ANN[0].GENE` == gene)
+  extracted_Data.filtered <- extracted_Data %>% filter(`ANN[*].GENE` == gene)
   # Build query column
-  extracted_Data.filtered <- extracted_Data.filtered %>% mutate(list_of_queries = if_else(condition = str_detect(ID,'rs')|ID %in% colnames(def_table.data),true = ID, false = HGVS))
+    #If we have and ID, check if it is present in DB as header, if not use HGVS. After selecting rsID or HGVS remove those that are not present even then. (There is probably a better way to do this)
+  extracted_Data.filtered <- extracted_Data.filtered %>% mutate(list_of_queries = if_else(condition = ID %in% colnames(def_table.data),true = ID, false = HGVS)) %>%
+    filter(list_of_queries %in% colnames(def_table.data))
   
   #Building query data structure
-  rsID_list <- extracted_Data.filtered %>% select(ID) %>% pull()
-  HGVS <- paste0('g.',extracted_Data.filtered$POS, extracted_Data.filtered$REF,'>', extracted_Data.filtered$ALT)
-  #I want to use a rsID if it is available AND it is found in the DB, if not i want to use HGVS
-  query.tb <- tibble()
-  query.tb <- tibble(rsID_list,HGVS) %>% mutate(list_of_queries = if_else(condition = str_detect(rsID_list,'rs')|rsID_list %in% colnames(def_table.data),true = rsID_list, false = HGVS)) %>%
-    bind_cols(POS = extracted_Data.filtered$POS,REF = extracted_Data.filtered$REF,ALT = extracted_Data.filtered$ALT)
-  
+  # rsID_list <- extracted_Data.filtered %>% select(ID) %>% pull()
+  # HGVS <- paste0('g.',extracted_Data.filtered$POS, extracted_Data.filtered$REF,'>', extracted_Data.filtered$ALT)
+
   cat(paste('#',extracted_Data.filtered$list_of_queries, collapse = ', '))
   cat("\n")
   # Process the rsIDs found in def_table to simplify query
@@ -139,7 +137,7 @@ for(gene in unique(extracted_Data$`ANN[*].GENE`)){
   #########################
   # column ID can be: rsID present in DB, rsID NOT present in DB, a dot (.)
   #########################
-  
+
   binari_info_sample <- def_table.data %>% select(all_of(extracted_Data.filtered$list_of_queries)) %>% transmute_all(~if_else(. == "",true = 0, false = 1))
     # Include rsID column
     binari_info_sample <- cbind(def_table.data %>% select(rsID), binari_info_sample)
@@ -201,4 +199,4 @@ for(gene in unique(extracted_Data$`ANN[*].GENE`)){
 }
 
 ######################## OUTPUT #########################
-# Redirect output with ">"
+# Redirect log output with ">"
