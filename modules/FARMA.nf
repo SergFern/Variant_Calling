@@ -39,7 +39,6 @@ process snpSift_filter_rsID {
         """
         cat $vcf | snpSift filter --set $params.rsID_list_FARMA "ID in SET[0]" > ${vcf.baseName}.set.vcf
         """
-
 }
 
 process snpSift_filter_def_genes {
@@ -95,7 +94,7 @@ process extract_info {
         tuple file('*tsv'), file(vcf)
     script:
         """
-        snpSift extractFields $vcf CHROM POS REF ALT ID ANN[0].GENE AF > ${vcf.baseName}.ID.tsv
+        snpSift extractFields $vcf -s ',' CHROM POS REF ALT ID ANN[*].GENE AF > ${vcf.baseName}.ID.tsv
         """
 }
 
