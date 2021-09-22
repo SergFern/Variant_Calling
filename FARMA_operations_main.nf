@@ -30,6 +30,12 @@ V A R I A N T  A N N O T A T O R  - I R Y C I S    v 1
     """.stripIndent()
 }
 
+// Show help message if --help specified
+if (params.help){
+    helpMessage()
+    exit 0
+}
+
 log.info """\
 
 ================================================================
