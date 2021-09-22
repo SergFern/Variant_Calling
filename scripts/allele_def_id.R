@@ -14,10 +14,10 @@ database_dir <- paste0(home,'/FARMA/cipic_info_genes')
 # Print if --help is given as an argument
 # Print if argument checks fails
 
-files <- commandArgs(trailingOnly=TRUE)
+# files <- commandArgs(trailingOnly=TRUE)
 #debugging
-# files <- c("~/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.vcf", 
-           # "/home/bioinfo/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.ID.tsv")
+files <- c("~/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.vcf",
+           "/home/bioinfo/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.ID.tsv")
 
 # Help reminder message:
 help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE] > output.log\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'
@@ -69,7 +69,7 @@ for(i in 1:length(genes_lst_multiple)){
 extracted_Data <- extracted_Data %>% mutate(`ANN[*].GENE` = genes_lst_single)
 # Substitute tsv file with corrected gene data
 
-write_tsv(path = tsv_file, x = extracted_Data, col_names = TRUE)
+write_tsv(file = tsv_file, x = extracted_Data, col_names = TRUE)
 
 # Build HGVS column
 extracted_Data <- extracted_Data %>% mutate(HGVS = paste0('g.',POS,REF,'>',ALT))
@@ -99,7 +99,7 @@ for(gene in unique(extracted_Data$`ANN[*].GENE`)){
     # remove empty rows
     def_table.data <- def_table.data %>% filter(rsID != '')
     #Prepare reference table HEADER ####
-    def_table.header <- tibble(read.xlsx2(grep(allele_def_data, pattern = gene, value = TRUE), sheetIndex = 1, endRow = rsID_row+1))  %>% transmute_all(.funs = ~as.character(.))
+    def_table.header <- tibble(read.xlsx2(grep(allele_def_data, pattern = gene, value = TRUE), sheetIndex = 1, startRow = 2, endRow = rsID_row+1, header = FALSE))  %>% transmute_all(.funs = ~as.character(.))
     # clean header
     def_table.header <- remove_empty(def_table.header)
     
@@ -124,7 +124,10 @@ for(gene in unique(extracted_Data$`ANN[*].GENE`)){
     #If we have and ID, check if it is present in DB as header, if not use HGVS. After selecting rsID or HGVS remove those that are not present even then. (There is probably a better way to do this)
   extracted_Data.filtered <- extracted_Data.filtered %>% mutate(list_of_queries = if_else(condition = ID %in% colnames(def_table.data),true = ID, false = HGVS)) %>%
     filter(list_of_queries %in% colnames(def_table.data))
-  
+  if(nrow(extracted_Data.filtered) == 0){
+    cat(paste('## No variants\n'))
+    next
+    }
   #Building query data structure
   # rsID_list <- extracted_Data.filtered %>% select(ID) %>% pull()
   # HGVS <- paste0('g.',extracted_Data.filtered$POS, extracted_Data.filtered$REF,'>', extracted_Data.filtered$ALT)
