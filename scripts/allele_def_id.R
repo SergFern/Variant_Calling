@@ -74,7 +74,7 @@ write_tsv(path = tsv_file, x = extracted_Data, col_names = TRUE)
 # Build HGVS column
 extracted_Data <- extracted_Data %>% mutate(HGVS = paste0('g.',POS,REF,'>',ALT))
 
-genes <- unique(extracted_Data$`ANN[0].GENE`)
+genes <- unique(extracted_Data$`ANN[*].GENE`)
 cat(paste("# Genes found in sample and present in database:", paste(genes, collapse = ', ')))
 
 ######################## REFERENCE TABLE ##########################
@@ -83,7 +83,7 @@ allele_def_data <- dir(paste0(database_dir,'/Allele_definition'), full.names = T
 cat("\n######################\n")
 cat("\n")
 
-for(gene in unique(extracted_Data$`ANN[0].GENE`)){
+for(gene in unique(extracted_Data$`ANN[*].GENE`)){
   cat("\n######################\n")
   cat(paste('## Variants for gene', gene, ':\n'))
   #Prepare reference table DATA  ####
