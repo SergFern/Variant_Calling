@@ -14,10 +14,10 @@ database_dir <- paste0(home,'/FARMA/cipic_info_genes')
 # Print if --help is given as an argument
 # Print if argument checks fails
 
-# files <- commandArgs(trailingOnly=TRUE)
+files <- commandArgs(trailingOnly=TRUE)
 #debugging
-files <- c("~/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.vcf",
-           "/home/bioinfo/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.ID.tsv")
+# files <- c("~/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.vcf",
+           # "/home/bioinfo/Variant_Calling/output/FARMA/HCOL10.gatk.norm.decomp.snpeff.snpsift.genes.ID.tsv")
 
 # Help reminder message:
 help_message <- 'USAGE:\n\nallele_def_id.R [VCF_FILE] [TSV_FILE] > output.log\n\nVCF_FILE is a variant calling file with extension *.vcf\nTSV_FILE is a file with extension *.tsv, direct output of FARMA.nf process "extract_info"\n\nParameters:\n\n--help to display this message.\n\n'

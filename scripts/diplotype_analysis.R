@@ -61,7 +61,7 @@ genes <- tsv_file.data %>% select(Gene)
 # write_lines(file = tmp_file, x = tsv_file.data)
 write_lines(file = tsv_file, x = '\n########## Dyplotype analysis results ##########\n', append = TRUE)
 cat('\n##################################################')
-cat('\n########## Dyplotype analysis results ##########\n')
+cat('\n########## Dyplotype analysis results ############\n')
 cat('##################################################\n')
 for(gene in unique(genes %>% pull())){
   alleles <- tsv_file.data %>% filter(Gene == gene) %>% select(Allele)
@@ -72,7 +72,6 @@ for(gene in unique(genes %>% pull())){
     
     cat("#Not enough alleles for dyplotype effect.\n")
     
-    write_lines(x = paste0("# ",gene,": Not enough alleles for dyplotype effect.\n"), file = tsv_file, append = TRUE)
   }else{
     #Case for a gene we have two alleles
     
