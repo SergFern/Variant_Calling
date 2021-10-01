@@ -2,31 +2,26 @@
 
 nextflow.enable.dsl=2
 
-/*
-
 process liftover {
     publishDir = "$params.outdir/annotation"
-    label 'liftover'
+    label 'picard'
 
     input:
         path vcf
     output:
-        file('*.vcf')
+        tuple file('*liftover.vcf'), file('.*processes.log')
 
     when:
-        $params.genome == "GRCh37"
+        params.genome == "GRCh37"
     script:
         """
-        java -Xmx8g -jar /usr/picard/picard.jar LiftoverVcf INPUT=$vcf OUTPUT=${vcf.baseName}.liftover.vcf CHAIN=$params.chain_path R=$params.seqRef --WRITE_ORIGINAL_POSITION
+        java -Xmx8g -jar /usr/picard/picard.jar LiftoverVcf INPUT=$vcf OUTPUT=${vcf.baseName}.liftover.vcf CHAIN=$params.chain_path R=$params.seqRef_GRCh38 WRITE_ORIGINAL_POSITION=true REJECT=${vcf.baseName}.liftover_rejected.vcf &> .${vcf.baseName}.FARMA_processes.log
         """
 
 }
 
-
-*/
-
 // ################## FILTERS ########################
-
+/*
 process snpSift_filter_rsID {
     publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
@@ -39,19 +34,19 @@ process snpSift_filter_rsID {
         """
         cat $vcf | snpSift filter --set $params.rsID_list_FARMA "ID in SET[0]" > ${vcf.baseName}.set.vcf
         """
-}
+}*/
 
 process snpSift_filter_def_genes {
     publishDir = "$params.outdir/FARMA"
     label 'snpEffect'
 
     input:
-        path vcf
+        tuple file(vcf), file(processes)
     output:
-        file('*.vcf')
+        tuple file('*.vcf'), file(processes)
     script:
         """
-        cat $vcf | snpSift filter --set $params.farmaDB/Allele_definition/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.genes.vcf
+        cat $vcf | snpSift filter --set $params.farmaDB/Allele_definition/available_genes.list "ANN[*].GENE in SET[0]" > ${vcf.baseName}.genes.vcf 2>> $processes
         """
 }
 /*
@@ -89,12 +84,13 @@ process extract_info {
     label 'snpEffect'
 
     input:
-        path vcf
+        tuple file(vcf), file(processes)
     output:
-        tuple file('*tsv'), file(vcf)
+        tuple file('*tsv'), file(vcf), file(processes)
+
     script:
         """
-        snpSift extractFields $vcf -s ',' CHROM POS REF ALT ID ANN[*].GENE AF > ${vcf.baseName}.ID.tsv
+        snpSift extractFields $vcf -s ',' CHROM POS REF ALT ID ANN[*].GENE AF > ${vcf.baseName}.ID.tsv 2>> $processes
         """
 }
 
@@ -105,12 +101,12 @@ process allele_def {
     label 'R'
 
     input:
-        tuple file(tsv), file(vcf)
+        tuple file(tsv), file(vcf), file(processes)
     output:
-        file('*.log')
+        tuple file('*.log'), file(processes)
     script:
     """
-    ~/Variant_Calling/scripts/allele_def_id.R $vcf $tsv > ${vcf.baseName}.alleleDef.log
+    ~/Variant_Calling/scripts/allele_def_id.R $vcf $tsv > ${vcf.baseName}.alleleDef.log 2>> $processes
     """
 
 }
@@ -120,12 +116,12 @@ process match_alleles {
     label 'R'
 
     input:
-        file(log_file)
+        tuple file(log_file), file(processes)
     output:
-        tuple file('*.tsv'), file(log_file)
+        tuple file('*.tsv'), file(log_file), file(processes)
     script:
     """
-    ~/Variant_Calling/scripts/match_allele.R $log_file
+    ~/Variant_Calling/scripts/match_allele.R $log_file 2>> $processes
     """
 
 }
@@ -135,12 +131,12 @@ process diplotype_analysis {
     label 'R'
 
     input:
-        tuple file(tsv), file(log_file)
+        tuple file(tsv), file(log_file), file(processes)
     output:
-        tuple file(tsv), file(log_file)
+        tuple file(tsv), file(log_file), file(processes)
     script:
     """
-    ~/Variant_Calling/scripts/diplotype_analysis.R $tsv >> $log_file
+    ~/Variant_Calling/scripts/diplotype_analysis.R $tsv >> $log_file 2>> $processes
     """
 
 }

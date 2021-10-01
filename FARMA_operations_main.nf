@@ -51,15 +51,14 @@ chain_path              : $params.chain_path
 ================================================================
 """
 
-include { snpSift_filter_rsID; snpSift_filter_def_genes; extract_info; allele_def; match_alleles; diplotype_analysis } from './modules/FARMA.nf'
+include { liftover; snpSift_filter_def_genes; extract_info; allele_def; match_alleles; diplotype_analysis } from './modules/FARMA.nf'
 
 
 workflow {
 
     data = channel.fromPath(params.VCF_files, checkIfExists: true)
-
-    snpSift_filter_rsID(data)
-    snpSift_filter_def_genes(snpSift_filter_rsID.out)
+    liftover(data)
+    snpSift_filter_def_genes(liftover.out)
     extract_info(snpSift_filter_def_genes.out)
     allele_def(extract_info.out)
     match_alleles(allele_def.out)
