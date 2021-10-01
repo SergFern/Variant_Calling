@@ -85,7 +85,7 @@ for(gene in unique(genes %>% pull())){
     
     ######################## query DB ########################
     
-    if(nrow(alleles) == 1 && AF == 1){
+    if(nrow(alleles) == 1 && af == 1){
       #Same allele twice
       query_allele <- paste(alleles[[1]][1], alleles[[1]][1], sep = '/')
     }else{
