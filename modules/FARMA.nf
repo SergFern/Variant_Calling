@@ -2,8 +2,24 @@
 
 nextflow.enable.dsl=2
 
+// If CHROM column in vcf does not have a chr, include it. If it does don't.
+process reference_switcher {
+    publishDir = "$params.outdir/FARMA"
+
+    input:
+        path vcf
+    output:
+        file('*Chr.vcf')
+
+    script:
+        """
+        ~/Variant_Calling/scripts/vcf_Reference_Switcher -a $vcf
+        """
+
+}
+
 process liftover {
-    publishDir = "$params.outdir/annotation"
+    publishDir = "$params.outdir/FARMA"
     label 'picard'
 
     input:

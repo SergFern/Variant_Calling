@@ -1,0 +1,34 @@
+#!/bin/bash
+
+version="program version #0.1
+Written by bioinfo-serg."
+
+usage="Usage: $0 [OPTION] [FILE]
+Description:
+
+Adds or Removes the tag 'chr' to the first column of VCF files with identified as CHROM.
+
+Mandatory arguments to long options are mandatory for short options too.
+
+    -a, --add_chr	adds the 'chr' string to the CHROM column of a VCF file
+    -r, --remove_chr	remove the 'chr' string to the CHROM column of a VCF file
+    
+    --help        display this help and exit
+    --version     display version information and exit
+
+With no FILE read standard input.
+
+Report bugs to <your therapist>."
+
+case $1 in
+--help)    exec echo "$usage";;
+--version) exec echo "$version";;
+esac
+
+case $1 in
+-r)		awk '{gsub(/^chr/,""); print}' $2 > `filename $2`_woChr.vcf;;
+--remove_chr)	awk '{gsub(/^chr/,""); print}' $2 > `filename $2`_woChr.vcf;;
+-a)		awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' $2 > `filename $2`_wChr.vcf;;
+--add_chr)	awk '{if($0 !~ /^#/) print "chr"$0; else print $0}' $2 > `filename $2`_wChr.vcf;;
+*) echo "Unrecognised option" && exec echo "$usage" ;;
+esac
