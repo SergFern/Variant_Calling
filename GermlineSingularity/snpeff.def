@@ -15,15 +15,14 @@ OSVersion: xenial
 	exec snpEff "$@"
 
 %appinstall snpEff
-	cd ~
 	wget https://snpeff.blob.core.windows.net/versions/snpEff_latest_core.zip
-	unzip snpEff_latest_core.zip
+	unzip snpEff_latest_core.zip -d /usr/bin/
 
 	echo "#"'!'"/bin/bash" > /usr/local/bin/snpEff
 	echo "#"'!'"/bin/bash" > /usr/local/bin/snpSift
 
-	echo "java -Xmx4G -jar ~/snpEff/snpEff.jar \"\$@\"" >> /usr/local/bin/snpEff
-	echo "java -Xmx4G -jar ~/snpEff/SnpSift.jar \"\$@\"" >> /usr/local/bin/snpSift
+	echo "java -Xmx4G -jar /usr/bin/snpEff/snpEff.jar \"\$@\"" >> /usr/local/bin/snpEff
+	echo "java -Xmx4G -jar /usr/bin/snpEff/SnpSift.jar \"\$@\"" >> /usr/local/bin/snpSift
 
 	chmod +x /usr/local/bin/*
 
