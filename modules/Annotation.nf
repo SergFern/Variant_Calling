@@ -31,7 +31,7 @@ process VCF_Decomposition {
 }
 
 process snpEff {
-    publishDir = "$params.outdir/annotation"
+    //publishDir = "$params.outdir/annotation"
     label 'snpEffect'
 
     input:
