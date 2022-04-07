@@ -109,9 +109,7 @@ def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.ge
 
 if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
-
   ch_reference = file(params.genome, checkIfExists: true)
-
 
   process Indexing_custom_genome {
     tag "Indexes supplied reference FASTA file (Samtools)"

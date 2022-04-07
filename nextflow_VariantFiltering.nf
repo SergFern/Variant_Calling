@@ -62,6 +62,7 @@ process SelectVariants {
   tag "Selects SNV or indels"
   publishDir "$params.outdir/raw_variant_calling_files/intermediate_vcfs"
   label "vfiltering"
+  label 'generic'
 
   input:
     set sampleId, file(vcf_file) from ch_vcf
@@ -79,6 +80,7 @@ process VariantFiltration {
   tag "Filter both SNP and indel variants"
   publishDir "$params.outdir/raw_variant_calling_files/intermediate_vcfs"
   label	"vfiltering"
+  label 'generic'
 
   input:
     set sampleId, file(snp_file) from ch_SNV
@@ -98,6 +100,7 @@ process Sorting_Variants {
   tag "Sort Variants in preparation for the MergeVcfs process"
   publishDir "$params.outdir/raw_variant_calling_files/intermediate_vcfs"
   label	"vfiltering"
+  label 'generic'
 
   input:
     set sampleId, file(snp_file) from ch_SNV_filtered
@@ -117,6 +120,7 @@ process MergeVcfs {
   tag "Merges both snp and indel vcfs, filtered and sorted"
   publishDir "$params.outdir/curated_variant_calling_files", mode: 'copy'
   label	"vfiltering"
+  label 'generic'
 
   input:
     set sampleId, file(snp_file) from ch_SNV_sorted
@@ -135,6 +139,7 @@ process IndexFeatureFile {
   tag "Indexes final curated vcf"
   publishDir "$params.outdir/curated_variant_calling_files", mode: 'copy'
   label	"vfiltering"
+  label 'generic'
 
   input:
     set sampleId, file(vcf_file) from ch_curated
