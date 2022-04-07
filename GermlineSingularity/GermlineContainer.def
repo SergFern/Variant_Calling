@@ -92,20 +92,20 @@ OSVersion: xenial
 
 # ######################### FastQC #######################
 %apprun fastqc
- exec fastqc "$@"
+	exec fastqc "$@"
 
 %appinstall fastqc
- wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip
- unzip -o fastqc_v0.11.9.zip -d /usr/local/bin
- rm fastqc_v0.11.9.zip
- chmod +x /usr/local/bin/FastQC/fastqc
- echo "/usr/local/bin/Fastqc/fastqc \"\$@\"" >> ~/fastqc
- chmod +x ~/fastqc
- mv ~/fastqc /usr/local/bin/
- 
+	wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip
+	unzip -o fastqc_v0.11.9.zip -d /usr/local/bin
+	rm fastqc_v0.11.9.zip
+	chmod +x /usr/local/bin/FastQC/fastqc
+	echo "/usr/local/bin/Fastqc/fastqc \"\$@\"" >> ~/fastqc
+	chmod +x ~/fastqc
+	mv ~/fastqc /usr/local/bin/
+
 
 %apphelp fastqc
-  FastQC https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
+	FastQC https://www.bioinformatics.babraham.ac.uk/projects/fastqc/
 
 # ######################### Qualimap bamqc #######################
 
@@ -113,7 +113,7 @@ OSVersion: xenial
 	exec bamqc "$@"
 
 %appinstall bamqc
-  wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.2.1.zip
+wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.2.1.zip
 	unzip -o qualimap_v2.2.1.zip -d /usr/local/bin
 	echo "/usr/local/bin/qualimap_v2.2.1/qualimap bamqc \"\$@\"" >> ~/bamqc
 	chmod +x ~/bamqc
@@ -143,22 +143,22 @@ OSVersion: xenial
 	pip3 install multiqc
 	
 %apphelp multiqc
- 	MultiQC https://multiqc.info/
+	MultiQC https://multiqc.info/
 # ######################### Trimmomatic #######################
 
 %apprun trimmomatic
-   exec trimmomatic "$@"
+	exec trimmomatic "$@"
 
 %appinstall trimmomatic
-   apt-get install trimmomatic
+	apt-get install trimmomatic
 
 %apphelp trimmomatic
-   exec man trimmomatic
+	exec man trimmomatic
 
 # ################### Samtools #################################
 
 %apprun samtools
-   exec samtools "$@"
+	exec samtools "$@"
 
 %appinstall samtools
 	git clone https://github.com/samtools/htslib
@@ -179,8 +179,8 @@ OSVersion: xenial
 		make -j 8
 		make install
 		cd ..
- %apphelp samtools
-   samtools . http://www.htslib.org/
+	%apphelp samtools
+	samtools . http://www.htslib.org/
 
 # ######################## VCF-tools #####################
 
@@ -218,20 +218,20 @@ OSVersion: xenial
 # ######################## Bowtie2 ################################
 
 %apprun bowtie2
-   exec bowtie2 "$@"
+	exec bowtie2 "$@"
 
 %appinstall bowtie2
-      wget https://github.com/BenLangmead/bowtie2/releases/download/v2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip
-      unzip bowtie2-2.3.5.1-linux-x86_64.zip
-      cp bowtie2-2.3.5.1-linux-x86_64/bowtie2* /usr/local/bin/
- 
+	wget https://github.com/BenLangmead/bowtie2/releases/download/v2.3.5.1/bowtie2-2.3.5.1-linux-x86_64.zip
+	unzip bowtie2-2.3.5.1-linux-x86_64.zip
+	cp bowtie2-2.3.5.1-linux-x86_64/bowtie2* /usr/local/bin/
+
 %apphelp bowtie2
-   Bowtie 2 v. 2.3.5.1 . http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
-   
+	Bowtie 2 v. 2.3.5.1 . http://bowtie-bio.sourceforge.net/bowtie2/index.shtml
+
 # ########################## VarScan #################################
 
 %apprun varscan
-   exec varscan "$@"
+	exec varscan "$@"
 
 %appinstall varscan
     wget https://github.com/dkoboldt/varscan/raw/master/VarScan.v2.4.4.jar
@@ -239,20 +239,20 @@ OSVersion: xenial
     echo "#"'!'"/bin/bash" > /usr/local/bin/varscan
     echo "java -jar /usr/local/bin/VarScan.v2.4.4.jar \"\$@\"" >> /usr/local/bin/varscan
     chmod +x /usr/local/bin/varscan
-   
+
 
 %apphelp varscan
-   VarScan 2.4.4 . https://github.com/dkoboldt/varscan
+VarScan 2.4.4 . https://github.com/dkoboldt/varscan
 
 # ######################### BWA #####################################
 %apprun bwa
 	exec bwa "$@"
 %appinstall bwa
-	  wget https://github.com/lh3/bwa/releases/download/v0.7.17/bwa-0.7.17.tar.bz2
-	  tar xvfj bwa-0.7.17.tar.bz2
-	  cd bwa-0.7.17/
-	  make 
-	  cp bwa /usr/local/bin
+	wget https://github.com/lh3/bwa/releases/download/v0.7.17/bwa-0.7.17.tar.bz2
+	tar xvfj bwa-0.7.17.tar.bz2
+	cd bwa-0.7.17/
+	make 
+	cp bwa /usr/local/bin
 %apphelp bwa
 	bwa . https://github.com/lh3/bwa
 
@@ -261,10 +261,10 @@ OSVersion: xenial
 	exec freebayes "$@"
 
 %appinstall freebayes
-	  wget https://github.com/ekg/freebayes/releases/download/v1.3.1/freebayes-v1.3.1
-	  mv freebayes-v1.3.1 freebayes
-	  chmod og+x freebayes
-	  cp freebayes /usr/local/bin/
+	wget https://github.com/ekg/freebayes/releases/download/v1.3.1/freebayes-v1.3.1
+	mv freebayes-v1.3.1 freebayes
+	chmod og+x freebayes
+	cp freebayes /usr/local/bin/
 	
 %apphelp freebayes
 	freebayes . https://github.com/ekg/freebayes
@@ -274,10 +274,10 @@ OSVersion: xenial
 	exec gatk "$@"
 
 %appinstall gatk
- 	wget https://github.com/broadinstitute/gatk/releases/download/4.1.4.1/gatk-4.1.4.1.zip
+	wget https://github.com/broadinstitute/gatk/releases/download/4.1.4.1/gatk-4.1.4.1.zip
 	unzip gatk-4.1.4.1.zip
 	ln -s /scif/apps/gatk/gatk-4.1.4.1/gatk /usr/local/bin
-	  
+
 %apphelp gatk
 
 	gatk . https://gatk.broadinstitute.org/hc/en-us
