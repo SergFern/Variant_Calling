@@ -47,7 +47,7 @@ process snpEff {
 
 process snpSift_annotate {
     publishDir = "$params.outdir/annotation"
-    label 'snpSift'
+    label 'snpEffect'
 
     input:
         path vcf
