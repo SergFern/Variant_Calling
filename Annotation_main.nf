@@ -34,7 +34,7 @@ workflow {
     VCF_Decomposition(VCF_Normalization.out)
     snpEff(VCF_Decomposition.out)
     snpSift_annotate(snpEff.out)
-    snpSift_filter(snpSift_annotate.out)
+    //snpSift_filter(snpSift_annotate.out)
 
 
 }
