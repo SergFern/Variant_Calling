@@ -1,14 +1,22 @@
 BootStrap: docker
-From: ubuntu:16.04
-OSVersion: xenial
+From: ubuntu:20.04
+OSVersion: focal
 
 %post
-
+export DEBIAN_FRONTEND=noninteractive
+	
+	apt -y update
+	apt -y upgrade
     apt-get -y update
-    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre r-base-core pkg-config libcurl4-openssl-dev libxml2-dev
+    apt-get -y upgrade
+    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre r-base-core pkg-config libcurl4-openssl-dev libxml2-dev software-properties-common 
+    apt -y update
+    add-apt-repository ppa:linuxuprising/java
+    apt -y install openjdk-17-jre
 
     mkdir /data_store
 
+unset DEBIAN_FRONTEND
 # ######################### snpEff #####################
 
 %apprun snpEff
@@ -21,8 +29,8 @@ OSVersion: xenial
 	echo "#"'!'"/bin/bash" > /usr/local/bin/snpEff
 	echo "#"'!'"/bin/bash" > /usr/local/bin/snpSift
 
-	echo "java -Xmx4G -jar /usr/bin/snpEff/snpEff.jar \"\$@\"" >> /usr/local/bin/snpEff
-	echo "java -Xmx4G -jar /usr/bin/snpEff/SnpSift.jar \"\$@\"" >> /usr/local/bin/snpSift
+	echo "java -Xmx16G -jar /usr/bin/snpEff/snpEff.jar \"\$@\"" >> /usr/local/bin/snpEff
+	echo "java -Xmx16G -jar /usr/bin/snpEff/SnpSift.jar \"\$@\"" >> /usr/local/bin/snpSift
 
 	chmod +x /usr/local/bin/*
 
