@@ -109,9 +109,7 @@ def ploidy = params.ploidy != 'no' || params.ploidy == 'yes' && params.ploidy.ge
 
 if(params.genome != "GRCh37" && params.genome != "GRCh38"){
 
-
   ch_reference = file(params.genome, checkIfExists: true)
-
 
   process Indexing_custom_genome {
     tag "Indexes supplied reference FASTA file (Samtools)"
@@ -205,15 +203,15 @@ process FASTQ_Trimming {
   input:
   set sampleId, file(samples) from ch_samples
 
-  output:
-  set sampleId, file('*.fastq.gz') into ch_alignment
+   output:
+   set sampleId, file('*_trimmed.fastq.gz') into ch_alignment
 
   script:
 
   if(params.paired){
 
       """
-      trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1.fastq.gz bad_1 ${sampleId[0]}_R2.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
+      trimmomatic PE -threads ${params.threads} ${samples[0]} ${samples[1]} ${sampleId[0]}_R1_trimmed.fastq.gz bad_1 ${sampleId[0]}_R2_trimmed.fastq.gz bad_2 ${adapter_trimm} SLIDINGWINDOW:15:${params.minqual} MINLEN:${params.minlen}
       """
   }
   else{
@@ -479,6 +477,7 @@ def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt
   process Variant_Calling_single {
     tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
     label 'big_mem'
+    publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
     label 'generic'
     //publishDir "$params.outdir/raw_variant_calling_files", mode: 'copy'
 

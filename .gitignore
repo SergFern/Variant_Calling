@@ -13,5 +13,7 @@ logs/*.html
 results
 slurm*
 *test*
+Farma_Test
 *.log
 *html*
+output/*

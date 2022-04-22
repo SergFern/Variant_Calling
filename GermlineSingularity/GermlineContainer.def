@@ -14,6 +14,10 @@ OSVersion: xenial
 	add-apt-repository ppa:deadsnakes/ppa
 
     apt-get -y update
+<<<<<<< HEAD:GermlineSingularity/GermlineContainer.def
+    apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3-pip
+    apt-get clean 
+=======
     apt-get -y install locales curl bzip2 less unzip libncurses5-dev zlib1g-dev libgsl0-dev libssl-dev libbz2-dev liblzma-dev wget git autoconf build-essential manpages-dev openjdk-8-jre python python3.6 python3-pip r-base-core pkg-config libcurl4-openssl-dev libxml2-dev r-base r-base-dev
 	
     update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
@@ -27,12 +31,17 @@ OSVersion: xenial
 
     R -e "install.packages('digest')"
     R -e "install.packages('tidyverse')"
+>>>>>>> cd0b2f536264a88a58a258eeba6b9ef568a50bef:GermlineSingularity/GermlineContainer.def
 
 
 	wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/Ensembl/GRCh37/Homo_sapiens_Ensembl_GRCh37.tar.gz
 	tar xvfz /home/BBDD/Homo_sapiens_Ensembl_GRCh37.tar.gz
 	wget -P /home/BBDD/ http://igenomes.illumina.com.s3-website-us-east-1.amazonaws.com/Homo_sapiens/NCBI/GRCh38/Homo_sapiens_NCBI_GRCh38.tar.gz
 	tar xvfz /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
+<<<<<<< HEAD:GermlineSingularity/GermlineContainer.def
+	rm /home/BBDD/Homo_sapiens_NCBI_GRCh38.tar.gz
+	rm /home/BBDD/Homo_sapiens_Ensembl_GRCh37.tar.gz
+=======
 
     mkdir /data_store
 
@@ -79,6 +88,7 @@ OSVersion: xenial
 %apphelp transIndel_call
 	https://github.com/cauyrd/transIndel
 
+>>>>>>> cd0b2f536264a88a58a258eeba6b9ef568a50bef:GermlineSingularity/GermlineContainer.def
 
 # ######################### FastQC #######################
 %apprun fastqc

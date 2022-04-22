@@ -1,7 +1,5 @@
 #!/usr/bin/env nextflow
 
-//TODO: --help message Annotation main
-
 nextflow.enable.dsl=2
 
 //TODO: send process Normalization and Decomposition to main Variant Calling pipelines.

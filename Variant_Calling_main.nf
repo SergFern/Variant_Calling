@@ -39,7 +39,7 @@ log.info """\
 ================================================================
 V A R I A N T  C A L L E R  - I R Y C I S - DS2    v 0.1
 ================================================================
-BAM_files_location      : $params.BAM_files_location
+BAM_input_dir           : $params.BAM_input_dir
 genome reference        : $params.seqRef
 variant caller          : $params.vc
 reads                   : 
