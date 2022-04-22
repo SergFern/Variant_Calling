@@ -7,12 +7,12 @@ nextflow.enable.dsl=2
 def helpMessage() {
     log.info"""
 ================================================================
-V A R I A N T  A N N O T A T O R  - I R Y C I S    v 1
+F A R M A   O P E R A T I O N S  - I R Y C I S    v 1
 ================================================================
 
     Usage:
     The typical command for running the pipeline is as follows:
-    ./Annotation_main.nf [OPTIONS]
+    ./FARMA_operations_main.nf [OPTIONS]
 
 
     Options:
@@ -59,10 +59,12 @@ workflow {
     data = channel.fromPath(params.VCF_files, checkIfExists: true)
     reference_switcher(data)
     liftover(reference_switcher.out)
+    /*
     snpSift_filter_def_genes(liftover.out)
     extract_info(snpSift_filter_def_genes.out)
     allele_def(extract_info.out)
     match_alleles(allele_def.out)
     diplotype_analysis(match_alleles.out)
-
+    */
+    
 }
