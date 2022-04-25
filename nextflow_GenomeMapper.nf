@@ -50,7 +50,7 @@ V A R I A N T  C A L L E R  - I R Y C I S    v 1.3
 ================================================================
 genome               : $params.genome
 reads                : $params.reads
-adapters             : $params.adapter_file
+adapters             : $params.adapters
 
 region_intervals     : $params.region_intervals
 skip variant calling : $params.skip_variant_calling
@@ -81,7 +81,7 @@ if(params.paired){
   ch_pre_samples.map{it -> new Tuple(it[0].split("_")[0],it[1,2])}.set{ ch_samples_with_id }
 
    //Identify fastq data for Read group definition "ID". RG:ID = {flowcell}.{lane}.{uniqueId} [must be unique despite documentation stating otherwise]
-  ch_FlowCell_lane.splitFastq(record: true, pe: true, limit: 1).map{it -> new Tuple(it[0].split("_")[0], it[1].readHeader.split(":")[2,3,9].join("."))}.set{ch_RG_ID}
+  ch_FlowCell_lane.splitFastq(record: true, pe: true, limit: 1).map{it -> new Tuple(it[0].split("_")[0], it[1].readHeader.split(":")[2,3].join("."))}.set{ch_RG_ID}
 
 }else{
 
@@ -93,7 +93,7 @@ if(params.paired){
       .ifEmpty {error "File ${params.reads} not parsed properly"}
       .into{ [ch_samples, ch_sampleName, ch_FlowCell_lane] }
 
-  ch_FlowCell_lane.splitFastq(record: true, pe: true, limit: 1).map{it -> new Tuple(it[0].split("_")[0], it[1].readHeader.split(":")[2,3,9].join("."))}.set{ch_RG_ID}
+  ch_FlowCell_lane.splitFastq(record: true, pe: true, limit: 1).map{it -> new Tuple(it[0].split("_")[0], it[1].readHeader.split(":")[2,3].join("."))}.set{ch_RG_ID}
 
 }
 //Fuse Ids and samples to manage SampleId as a tuple together with the samples they identify.
@@ -203,8 +203,8 @@ process FASTQ_Trimming {
   input:
   set sampleId, file(samples) from ch_samples
 
-   output:
-   set sampleId, file('*_trimmed.fastq.gz') into ch_alignment
+  output:
+  set sampleId, file('*_trimmed.fastq.gz') into ch_alignment
 
   script:
 
