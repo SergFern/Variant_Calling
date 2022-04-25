@@ -2,6 +2,10 @@
 
 nextflow.enable.dsl=2
 
+def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt_fraction}"
+def seqRef = file(params.seqRef)
+def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
+
 process Variant_Calling_single {
     tag "Variant calling using selected Variant Caller (GATK, freebayes, varscan)"
     label 'big_mem'

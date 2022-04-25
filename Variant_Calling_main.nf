@@ -11,11 +11,11 @@ def helpMessage() {
 
     Usage:
     The typical command for running the pipeline is as follows:
-    ./Variant_Calling_main.nf --BAM_files_location [DIR] --genome [FILE]
+    ./Variant_Calling_main.nf --BAM_input_dir [DIR] --genome [FILE]
 
     Options:
 
-    --BAM_files_location [DIR]
+    --BAM_input_dir [DIR]
     --outdir [DIR]                          The output directory where the results will be saved (default: "my-results")
     --genome <GRCh37 | GRCh38 | [FILE]>     Reference genome to undergo the maping. Options: GRCh37, GRCh38, [/path/to/reference.fasta] (default: GRCh37)
     --region_intervals [BED FILE]           Complete path to specific genomic region in .list format (without chr) to constrict mapping and variant calling. Necessary for Whole Exome Sequencing and Panels. (default: NO_FILE)
@@ -49,13 +49,15 @@ outdir                  : $params.outdir
 """
 def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt_fraction}"
 def seqRef = file(params.seqRef)
+def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
 
 include { Variant_Calling_single } from './modules/Variant_Calling.nf'
 
 workflow {
-
-    data = channel.fromFilePairs("${params.BAM_files_location}/*.{bam,bai}", checkIfExists: true).take( params.dev ? params.number_of_inputs : -1 )
-    data.subscribe onNext: { println it }, onComplete: { println 'Done' }
+    //data cannot by symlinks
+    data = channel.fromFilePairs("${params.BAM_input_dir}/*.{bam,bai}", checkIfExists: true).take( params.dev ? params.number_of_inputs : -1 )
     Variant_Calling_single(data)
+    data.subscribe onNext: { println it }, onComplete: { println 'Done' }
+
 
 }
