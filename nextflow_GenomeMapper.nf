@@ -321,8 +321,8 @@ process BAM_sorting{
   tag "Sorts BAM file using Samtools"
   label 'big_mem'
   label 'generic'
-
-  publishDir "$params.outdir/alignment"
+  //does it need to NOT be a symlink to be processed by another nextflow pipeline?
+  publishDir "$params.outdir/alignment", mode: 'copy', overwrite: true
 
   input:
   set sampleId, file(bam_file) from ch_bam_sorting
@@ -380,6 +380,9 @@ process BAM_file_indexing{
   label 'big_mem'
   label 'generic'
 
+  errorStrategy 'retry'
+  maxRetries 3
+
   publishDir "$params.outdir/alignment"
 
   input:
@@ -431,7 +434,11 @@ if(dbSNP != 'NO_FILE'){
     tag "Apply previously recalibrated table"
     label 'big_mem'
     label 'generic'
-    publishDir "$params.outdir/alignment"
+
+    errorStrategy 'retry'
+    maxRetries 3
+
+    publishDir "$params.outdir/alignment", mode: 'copy', overwrite: true
 
     input:
       set sampleId,file(bam),file(bai),file(bqsr) from ch_bamFilesForApplyBQSR
