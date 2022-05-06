@@ -42,14 +42,10 @@ V A R I A N T  C A L L E R  - I R Y C I S - DS2    v 0.1
 BAM_input_dir           : $params.BAM_input_dir
 genome reference        : $params.seqRef
 variant caller          : $params.vc
-reads                   : 
 min_alt_fraction        : $params.min_alt_fraction
 outdir                  : $params.outdir
 ================================================================
 """
-def min_alt_fraction_var = params.min_alt_fraction == '' ? 0.2:"${params.min_alt_fraction}"
-def seqRef = file(params.seqRef)
-def region_interval = params.region_intervals != 'NO_FILE' ? "-L ${params.region_intervals} -ip 100 ":''
 
 include { Variant_Calling_single } from './modules/Variant_Calling.nf'
 
@@ -58,6 +54,5 @@ workflow {
     data = channel.fromFilePairs("${params.BAM_input_dir}/*.{bam,bai}", checkIfExists: true).take( params.dev ? params.number_of_inputs : -1 )
     Variant_Calling_single(data)
     data.subscribe onNext: { println it }, onComplete: { println 'Done' }
-
 
 }
