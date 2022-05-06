@@ -383,7 +383,7 @@ process BAM_file_indexing{
   errorStrategy 'retry'
   maxRetries 3
 
-  publishDir "$params.outdir/alignment"
+  publishDir "$params.outdir/alignment", mode: 'copy', overwrite: true
 
   input:
   set sampleId, file(bam_file) from ch_index_bam
@@ -413,6 +413,9 @@ if(dbSNP != 'NO_FILE'){
     tag "Calculate Base recalibration table"
     label 'big_mem'
     label 'generic'
+
+    errorStrategy 'retry'
+    maxRetries 3
 
     publishDir "$params.outdir/alignment"
     
